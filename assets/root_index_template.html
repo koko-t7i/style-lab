@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__PRODUCT_TITLE__ — style-lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --border: #ebe9e3;
+    --border-strong: #c8c5bf;
+    --text: #18181b;
+    --text-dim: #6b6b73;
+    --text-faint: #9a9aa3;
+    --accent: #18181b;
+    --kind-fresh: #2563eb;
+    --kind-refine: #8b5cf6;
+    --kind-ref: #f59e0b;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  /* Top header with brand */
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 14px 24px 12px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+
+  .wordmark {
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .product {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-dim);
+    letter-spacing: -0.005em;
+  }
+
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+
+  .meta kbd {
+    padding: 1px 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 10px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    flex-shrink: 0;
+    padding: 0 18px;
+  }
+
+  .tabs::-webkit-scrollbar { height: 6px; }
+  .tabs::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+  .tab {
+    flex: 0 0 auto;
+    background: transparent;
+    border: none;
+    padding: 14px 18px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--text-dim);
+    border-bottom: 2px solid transparent;
+    transition: all 150ms;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 110px;
+    position: relative;
+  }
+
+  .tab:hover { color: var(--text); background: rgba(0,0,0,0.02); }
+
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .tab-num {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tab.active .tab-num { color: var(--text); }
+
+  .tab-kind {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--surface);
+    background: var(--text-faint);
+  }
+
+  .tab-kind.fresh { background: var(--kind-fresh); }
+  .tab-kind.refine { background: var(--kind-refine); }
+  .tab-kind.ref { background: var(--kind-ref); }
+
+  .tab-meta {
+    font-size: 11px;
+    color: var(--text-faint);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tab-meta .picked {
+    color: var(--kind-fresh);
+    font-weight: 600;
+  }
+
+  /* Stage (iframe) */
+  .stage {
+    flex: 1;
+    background: var(--bg);
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .stage iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-dim);
+    padding: 80px 20px;
+  }
+  .empty-state h2 { color: var(--text); margin-bottom: 12px; font-size: 20px; }
+
+  @media (max-width: 760px) {
+    header { padding: 10px 14px; }
+    .tabs { padding: 0 8px; }
+    .tab { min-width: 90px; padding: 12px 12px 10px; }
+    .meta { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="wordmark">Style Lab</div>
+      <div class="product">__PRODUCT_TITLE__</div>
+    </div>
+    <div class="meta">
+      <span><kbd>1</kbd>–<kbd>9</kbd> 切换批次</span>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs">__TABS__</nav>
+  <div class="stage" id="stage">__STAGE__</div>
+</div>
+<script>
+  const batches = __BATCHES_JSON__;
+
+  if (batches.length) {
+    const tabs = document.querySelectorAll('.tab');
+    const stage = document.getElementById('stage');
+    const STORAGE_KEY = 'style-lab:active-batch:' + location.pathname;
+
+    function setActive(idx) {
+      if (idx < 0 || idx >= batches.length) return;
+      const b = batches[idx];
+      stage.innerHTML = '<iframe src="' + b.src + '" loading="eager"></iframe>';
+      tabs.forEach((t, i) => t.classList.toggle('active', i === idx));
+      try { localStorage.setItem(STORAGE_KEY, String(idx)); } catch (e) {}
+    }
+
+    tabs.forEach((t, i) => t.addEventListener('click', () => setActive(i)));
+
+    document.addEventListener('keydown', e => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.key >= '1' && e.key <= '9') {
+        const n = parseInt(e.key) - 1;
+        if (n < batches.length) { e.preventDefault(); setActive(n); }
+      }
+    });
+
+    // restore last-viewed batch, or default to most recent (last in list)
+    let initial = batches.length - 1;
+    try {
+      const saved = parseInt(localStorage.getItem(STORAGE_KEY));
+      if (!isNaN(saved) && saved >= 0 && saved < batches.length) initial = saved;
+    } catch (e) {}
+    setActive(initial);
+  }
+</script>
+</body>
+</html>

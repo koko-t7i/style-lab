@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>__PRODUCT_TITLE__ — style-lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --border: #ebe9e3;
+    --border-strong: #c8c5bf;
+    --text: #18181b;
+    --text-dim: #6b6b73;
+    --text-faint: #9a9aa3;
+    --accent: #18181b;
+    --sidebar-w: 240px;
+  }
+
+  html { scroll-behavior: smooth; }
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    height: 100vh;
+  }
+
+  /* SIDEBAR */
+  aside {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .brand {
+    padding: 22px 24px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wordmark {
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .product {
+    margin-top: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-dim);
+    letter-spacing: -0.005em;
+  }
+
+  .toc {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 0;
+  }
+
+  .toc-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    padding: 0 24px 10px;
+  }
+
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 10px 24px;
+    color: var(--text-dim);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: all 120ms;
+    cursor: pointer;
+    font-family: inherit;
+    background: transparent;
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
+    width: 100%;
+    text-align: left;
+  }
+
+  .toc-item:hover {
+    color: var(--text);
+    background: rgba(0,0,0,0.02);
+  }
+
+  .toc-item.active {
+    color: var(--text);
+    border-left-color: var(--accent);
+    background: rgba(0,0,0,0.03);
+  }
+
+  .toc-num {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .toc-item.active .toc-num { color: var(--text); }
+
+  .toc-name {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .toc-item.active .toc-name { font-weight: 600; }
+
+  .controls {
+    border-top: 1px solid var(--border);
+    padding: 14px 20px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .control-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  .viewport-switcher {
+    display: flex;
+    gap: 2px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 2px;
+  }
+
+  .viewport-switcher button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 6px 4px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 150ms;
+  }
+
+  .viewport-switcher button:hover { color: var(--text); }
+  .viewport-switcher button.active { background: var(--accent); color: white; }
+
+  .keyhint {
+    font-size: 10px;
+    color: var(--text-faint);
+    line-height: 1.5;
+    margin-top: 2px;
+  }
+  .keyhint kbd {
+    display: inline-block;
+    padding: 1px 5px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    font-family: inherit;
+    font-size: 9px;
+    margin: 0 1px;
+  }
+
+  /* MAIN */
+  main {
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--bg);
+    scroll-behavior: smooth;
+  }
+
+  .variant-section {
+    padding: 24px 32px 32px;
+  }
+
+  .variant-section + .variant-section {
+    border-top: 1px dashed var(--border-strong);
+  }
+
+  .variant-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0 4px 16px;
+  }
+
+  .variant-title {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+
+  .variant-num {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .variant-name {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .variant-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .variant-actions a {
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 500;
+    text-decoration: none;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: all 150ms;
+    background: var(--surface);
+  }
+
+  .variant-actions a:hover {
+    color: var(--text);
+    border-color: var(--text);
+  }
+
+  .variant-frame {
+    height: calc(100vh - 110px);
+    min-height: 600px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 12px 40px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: center;
+  }
+
+  .variant-frame iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: none;
+    transition: width 200ms ease;
+  }
+
+  body.viewport-tablet .variant-frame iframe { width: 768px; max-width: 100%; }
+  body.viewport-mobile .variant-frame iframe { width: 390px; max-width: 100%; }
+
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--text-dim);
+    padding: 80px 20px;
+  }
+  .empty-state h2 { color: var(--text); margin-bottom: 12px; font-size: 20px; }
+
+  /* Scrollbar polish */
+  main::-webkit-scrollbar, .toc::-webkit-scrollbar { width: 8px; }
+  main::-webkit-scrollbar-track, .toc::-webkit-scrollbar-track { background: transparent; }
+  main::-webkit-scrollbar-thumb, .toc::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 4px;
+  }
+
+  /* Mobile fallback: stack sidebar on top */
+  @media (max-width: 760px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    aside { border-right: none; border-bottom: 1px solid var(--border); max-height: 38vh; }
+    .toc { display: flex; flex-wrap: wrap; padding: 8px; gap: 4px; }
+    .toc-label { display: none; }
+    .toc-item { width: auto; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; border-left-width: 1px; }
+    .toc-item.active { border-color: var(--accent); border-left-width: 1px; }
+    .controls { display: none; }
+    .variant-section { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  __APP_BODY__
+</div>
+<script>
+  const variants = __VARIANTS_JSON__;
+
+  if (variants.length) {
+    const tocItems = document.querySelectorAll('.toc-item');
+    const sections = document.querySelectorAll('.variant-section');
+    const main = document.getElementById('main');
+
+    // toc click → scroll to section
+    tocItems.forEach((item, i) => {
+      item.addEventListener('click', () => {
+        sections[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+
+    // intersection observer → highlight active toc item as user scrolls
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const idx = parseInt(entry.target.dataset.idx);
+          tocItems.forEach((t, i) => t.classList.toggle('active', i === idx));
+        }
+      });
+    }, { root: main, rootMargin: '-30% 0px -60% 0px', threshold: 0 });
+
+    sections.forEach(s => observer.observe(s));
+    tocItems[0].classList.add('active');
+
+    // viewport switcher
+    document.querySelectorAll('#viewport-switcher button').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('#viewport-switcher button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.body.classList.remove('viewport-tablet', 'viewport-mobile');
+        const v = btn.dataset.viewport;
+        if (v === 'tablet') document.body.classList.add('viewport-tablet');
+        if (v === 'mobile') document.body.classList.add('viewport-mobile');
+      };
+    });
+
+    // keyboard nav
+    document.addEventListener('keydown', e => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      const activeIdx = Array.from(tocItems).findIndex(t => t.classList.contains('active'));
+      let next = activeIdx;
+      if (e.key === 'ArrowDown' || e.key === 'j') next = Math.min(activeIdx + 1, sections.length - 1);
+      else if (e.key === 'ArrowUp' || e.key === 'k') next = Math.max(activeIdx - 1, 0);
+      else if (e.key >= '1' && e.key <= '9') next = Math.min(parseInt(e.key) - 1, sections.length - 1);
+      else return;
+      e.preventDefault();
+      sections[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+</script>
+</body>
+</html>
