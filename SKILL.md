@@ -137,20 +137,21 @@ This:
 1. Regenerates `<output-dir>/index.html` (side-by-side iframe grid, Single-mode toggle, viewport switcher) from `assets/index_template.html`.
 2. Picks a free port (default 8765+, or pass `--port 8765`).
 3. Starts `python3 -m http.server` detached in the background, serving the directory.
-4. Prints a paste-ready `ssh -L` command for the user's local PowerShell / Terminal, plus the `http://localhost:PORT/index.html` URL to open in their browser.
+4. Auto-detects local vs SSH session via `$SSH_CONNECTION`:
+   - **Remote (SSH):** prints a paste-ready `ssh -N -L` tunnel command + `http://localhost:PORT/index.html`.
+   - **Local:** prints just `http://localhost:PORT/index.html` — no tunnel needed.
+   You can force the remote variant by passing `--host <user@host>` or setting `$STYLE_LAB_SSH_HOST`.
 5. Writes a `.preview-server.pid` so the server can be killed later: `python3 <skill-path>/scripts/serve_preview.py <output-dir> --kill`.
 
-If you only need the static index without serving (e.g. user is on local machine), you can call `generate_index.py` directly instead — but in 95% of cases the user is on a remote server and `serve_preview.py` is what you want.
+If you only need the static index without serving, you can call `generate_index.py` directly instead — but `serve_preview.py` handles regeneration + serving + local/remote detection in one shot, so prefer it.
 
 ### 6. Hand off to the user
 
-The script's output already tells the user exactly what to paste and what to open. Don't re-explain the SSH command — the user has eyes. Just:
+The script's output already tells the user exactly what to paste and what to open (and only prints the SSH tunnel block when it detects an SSH session). Don't re-explain it — the user has eyes. Just:
 
-1. Re-paste the SSH command and the URL prominently in your reply (they're easy to miss in script output).
+1. Re-paste the URL (and the SSH command, if one was printed) prominently in your reply — they're easy to miss in script output.
 2. Briefly (2–3 lines per variant) say what you were going for with each one and what kind of product/audience it's best for.
 3. Don't editorialize about which is "best" — that's exactly what the user is here to decide.
-
-If the user is local (not over SSH), tell them to skip the `ssh -L` step and just open `http://localhost:PORT/index.html` directly.
 
 If the user picks one or asks to "go deeper on #2", you can then either:
 - generate a second iteration of just that style with refinements they asked for, or

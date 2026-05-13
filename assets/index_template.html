@@ -19,6 +19,8 @@
     --text-dim: #6b6b73;
     --text-faint: #9a9aa3;
     --accent: #18181b;
+    --pick: #2563eb;
+    --pick-soft: #eff4ff;
     --sidebar-w: 240px;
   }
 
@@ -137,6 +139,45 @@
 
   .toc-item.active .toc-name { font-weight: 600; }
 
+  .toc-pick {
+    margin-left: auto;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--pick);
+    background: var(--pick-soft);
+    padding: 2px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .toc-item.picked { background: rgba(37, 99, 235, 0.04); }
+  .toc-item.picked .toc-name { color: var(--text); }
+
+  .picks-notes {
+    margin: 4px 16px 14px;
+    padding: 10px 12px;
+    background: var(--pick-soft);
+    border-left: 2px solid var(--pick);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.45;
+  }
+
+  .picks-notes .picks-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--pick);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .picks-notes ul { list-style: none; padding: 0; margin: 0; }
+  .picks-notes li + li { margin-top: 4px; }
+
   .controls {
     border-top: 1px solid var(--border);
     padding: 14px 20px 18px;
@@ -239,6 +280,25 @@
     font-size: 20px;
     font-weight: 600;
     letter-spacing: -0.02em;
+  }
+
+  .pick-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--surface);
+    background: var(--pick);
+    padding: 4px 9px;
+    border-radius: 4px;
+    line-height: 1;
+  }
+
+  .variant-section.picked .variant-frame {
+    box-shadow: 0 0 0 2px var(--pick), 0 12px 40px rgba(37, 99, 235, 0.12);
   }
 
   .variant-actions {

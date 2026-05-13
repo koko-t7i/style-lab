@@ -135,6 +135,25 @@ def regenerate_root_with_batches(output_dir: Path, title: str) -> None:
         _run(cmd, "generate_root_index.py")
 
 
+def is_remote_session(forced_host: str = "") -> bool:
+    """True when we should print SSH-tunnel instructions instead of a bare URL.
+
+    Treated as remote when:
+      - --host was explicitly passed (user is forcing the SSH variant), or
+      - $SSH_CONNECTION / $SSH_CLIENT is set (we're inside an ssh session), or
+      - $STYLE_LAB_SSH_HOST is set (user opted in to a known remote alias).
+
+    Otherwise we assume the user is local and can hit http://localhost:PORT directly.
+    """
+    if forced_host:
+        return True
+    if os.environ.get("SSH_CONNECTION") or os.environ.get("SSH_CLIENT"):
+        return True
+    if os.environ.get("STYLE_LAB_SSH_HOST", "").strip():
+        return True
+    return False
+
+
 def detect_ssh_host() -> str:
     """Best-effort guess of the host token for the ssh -L command.
 
@@ -227,7 +246,7 @@ def main() -> int:
     kill_existing(pid_file)
     port = find_free_port(args.port)
     pid = start_server(output_dir, port, pid_file)
-    host = args.host or detect_ssh_host()
+    remote = is_remote_session(args.host or "")
 
     bar = "─" * 64
     print()
@@ -237,22 +256,34 @@ def main() -> int:
     print()
     print(f"  Serving:  {output_dir}")
     print()
-    print(f"  ▶ Paste this in your local PowerShell / Terminal:")
-    print()
-    print(f"      ssh -N -L {port}:localhost:{port} {host}")
-    print()
-    print(f"      (The -N flag means: just open the tunnel, do NOT log into the")
-    print(f"       server. The window will appear to hang with no shell prompt —")
-    print(f"       that is correct. Press Ctrl+C in that window to close the tunnel.)")
-    print()
-    print(f"  ▶ Then open in your browser:")
-    print()
-    print(f"      http://localhost:{port}/index.html")
-    print()
-    print(f"  ▶ When you're done previewing:")
-    print()
-    print(f"      · Ctrl+C in the ssh window to drop the tunnel")
-    print(f"      · Stop the remote server: python3 {Path(__file__).name} {output_dir} --kill")
+
+    if remote:
+        host = args.host or detect_ssh_host()
+        print(f"  ▶ Paste this in your local PowerShell / Terminal:")
+        print()
+        print(f"      ssh -N -L {port}:localhost:{port} {host}")
+        print()
+        print(f"      (The -N flag means: just open the tunnel, do NOT log into the")
+        print(f"       server. The window will appear to hang with no shell prompt —")
+        print(f"       that is correct. Press Ctrl+C in that window to close the tunnel.)")
+        print()
+        print(f"  ▶ Then open in your browser:")
+        print()
+        print(f"      http://localhost:{port}/index.html")
+        print()
+        print(f"  ▶ When you're done previewing:")
+        print()
+        print(f"      · Ctrl+C in the ssh window to drop the tunnel")
+        print(f"      · Stop the remote server: python3 {Path(__file__).name} {output_dir} --kill")
+    else:
+        print(f"  ▶ Open in your browser:")
+        print()
+        print(f"      http://localhost:{port}/index.html")
+        print()
+        print(f"  ▶ When you're done previewing:")
+        print()
+        print(f"      python3 {Path(__file__).name} {output_dir} --kill")
+
     print()
     print(bar)
     return 0

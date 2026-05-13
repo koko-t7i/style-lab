@@ -10,6 +10,7 @@ Reads <output-dir>/state.json, then writes <output-dir>/index.html with one
 tab per batch. Each tab loads the batch's own comparison page in an iframe.
 """
 import argparse
+import html
 import json
 import sys
 from pathlib import Path
@@ -32,10 +33,14 @@ def render_tab(batch: dict, idx: int) -> str:
     style_count = len(batch.get("styles", []))
     picks = batch.get("user_picks", [])
     pick_html = ""
+    title_attr = ""
     if picks:
         pick_html = f'<span class="picked">★ {len(picks)} picked</span>'
+        picks_listed = "\n".join("• " + p for p in picks)
+        tooltip = "Picked in this batch:\n" + picks_listed
+        title_attr = ' title="' + html.escape(tooltip, quote=True) + '"'
 
-    return f"""<button class="tab" data-idx="{idx}" type="button">
+    return f"""<button class="tab" data-idx="{idx}" type="button"{title_attr}>
         <div class="tab-row">
           <span class="tab-num">batch {n:02d}</span>
           <span class="tab-kind {css}">{label}</span>
