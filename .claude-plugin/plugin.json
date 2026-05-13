@@ -1,0 +1,17 @@
+{
+  "name": "style-lab",
+  "version": "0.1.0",
+  "description": "Generate distinct visual design directions as runnable single-page HTML mockups.",
+  "author": {
+    "name": "style-lab contributors"
+  },
+  "repository": "ssh://git@rr.aurtech.cc:2026/tools/style-lab.git",
+  "keywords": [
+    "claude-code",
+    "skill",
+    "design",
+    "visual-exploration",
+    "prototyping"
+  ],
+  "skills": "./skills/"
+}

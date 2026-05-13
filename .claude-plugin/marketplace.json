@@ -1,0 +1,27 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "style-lab",
+  "description": "Visual direction exploration skill for Claude Code.",
+  "owner": {
+    "name": "style-lab contributors"
+  },
+  "plugins": [
+    {
+      "name": "style-lab",
+      "description": "Generate distinct visual design directions as runnable single-page HTML mockups.",
+      "version": "0.1.0",
+      "author": {
+        "name": "style-lab contributors"
+      },
+      "source": "./",
+      "category": "productivity",
+      "homepage": "ssh://git@rr.aurtech.cc:2026/tools/style-lab.git",
+      "tags": [
+        "design",
+        "visual-exploration",
+        "prototyping"
+      ]
+    }
+  ],
+  "version": "0.1.0"
+}
