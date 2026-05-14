@@ -1,7 +1,6 @@
 ---
 name: style-lab
-description: >-
-  Use when the user wants to explore visual design directions before committing to one — phrases like "看看这个产品适合什么风格", "批量出几版设计稿", "design exploration", "style options", "prototype a few looks", "moodboard", "I'm not sure what direction to take", or any time they hand over a product description / PRD / one-pager and want visual ideas. ALSO use when they name a brand or paste reference URLs ("做成 Stripe / Linear / Aurpay 这样", "match this brand", "I want it to look like X", "use these design references") — the skill extracts brand DNA (colors, gradients, fonts) from URLs and applies it to generated variants. Batch-generates 3–5 self-contained single-page HTML mockups in distinctly different visual styles plus a side-by-side comparison index.html, so the user can decide a direction in minutes. Iteration: "more, but different" adds fresh styles excluded from prior batches; "go deeper on #N" produces variations of a picked style. After the user commits to a winner, emits a DESIGN.md spec so downstream coding agents (Cursor / Claude Code) stay on-brand. Trigger even without the user saying "skill" or "style-lab" — exploring directions, naming a brand to imitate, or pasting design references all qualify.
+description: Use when exploring visual design directions before implementation, including style options, moodboards, HTML landing-page mockups, reference-brand matching, pasted design URLs, "做成 X 这样", "批量出几版设计稿", "more but different", or "go deeper on #N" iteration requests.
 ---
 
 # style-lab
