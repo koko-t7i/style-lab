@@ -60,6 +60,8 @@ Pick an output directory — default to `./style-lab-output/<product-slug>/` (re
 
 For first runs, create a `batch-1/` subdirectory inside the output directory. Each variant goes in `batch-1/01-style-slug/`, `batch-1/02-style-slug/`, etc. Also create `<output-dir>/state.json` recording this first batch (see `references/iteration-modes.md` for the schema).
 
+**Drop a `.gitignore` containing a single `*` at `style-lab-output/.gitignore` if it doesn't already exist.** The HTML mockups, comparison index, preview-server pid file, and `state.json` are all throwaway exploration artifacts — only `DESIGN.md` (which lands at the repo root in step 7) is meant to be committed. Ignoring the whole `style-lab-output/` tree keeps the repo clean.
+
 Before generating variants, write down two pieces of **shared content** so every variant tells the same story with different visuals:
 
 - The **headline + subhead** (the actual product pitch, in the user's words where possible)
@@ -191,7 +193,7 @@ python3 <skill-path>/scripts/extract_design_md.py <output-dir>/<NN-winning-style
 ```
 
 This:
-1. Scans the winning variant's `index.html` and extracts **solid colors AND gradients** (linear + radial), typography, spacing, border-radius into the YAML front-matter of a new `DESIGN.md` (saved one level up — alongside the variant folders). Solid hex values that are also gradient stops are renamed to indicate the relationship (`brand-start: "#5B7FFF"  # gradients.brand stop 0`) instead of appearing as standalone `accent` / `highlight` tokens — this makes the gradient identity obvious to downstream agents reading the file.
+1. Scans the winning variant's `index.html` and extracts **solid colors AND gradients** (linear + radial), typography, spacing, border-radius into the YAML front-matter of a new `DESIGN.md`. By default the file is written to the **repo root** (via `git rev-parse --show-toplevel` on the variant directory) — that's where downstream coding agents look first, and where it's meant to be committed. If the variant isn't inside a git repo the script falls back to writing it next to the variant folders. Pass `--output <path>` to override. Solid hex values that are also gradient stops are renamed to indicate the relationship (`brand-start: "#5B7FFF"  # gradients.brand stop 0`) instead of appearing as standalone `accent` / `highlight` tokens — this makes the gradient identity obvious to downstream agents reading the file.
 2. Generates the 9-section markdown skeleton with `<!-- LLM-FILL: ... -->` placeholders.
 
 Then **you** (the agent reading this skill) must:
@@ -201,7 +203,7 @@ Then **you** (the agent reading this skill) must:
 5. **Replace every `<!-- LLM-FILL: ... -->` placeholder** with real, opinionated, variant-specific prose. Don't write generic design-system copy. Don't soften opinionated styles (Brutalism's DESIGN.md should *forbid* gradients, not "discourage" them).
 6. **Review the auto-extracted color token names.** The script guesses based on luminance/saturation — `paper` and `ink` are usually right but `surface`/`muted`/`border` may be miscategorized. Rename to match how each color is actually used on the page.
 7. **Optionally validate** with `npx @google/design.md lint <path>/DESIGN.md` (catches broken token references and WCAG contrast issues). Fix anything it flags.
-8. Tell the user the file is ready and what they do with it: drop it at the repo root, point Cursor / Claude Code at it, and every future UI prompt will respect the brand.
+8. Tell the user the file is ready, where it landed (the script prints the destination — usually the repo root), and what they do with it: commit it, point Cursor / Claude Code at it, and every future UI prompt will respect the brand.
 
 ## Anti-patterns to avoid
 

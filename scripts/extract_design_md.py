@@ -12,14 +12,19 @@ emits a 9-section markdown skeleton. The prose sections are seeded with
 <!-- LLM-FILL: ... --> placeholders that the calling agent should replace
 with real, variant-specific design rationale.
 
-Output goes to <variant-dir>/../DESIGN.md by default (sibling of the variant
-folder, alongside index.html), or to --output if specified.
+Output goes to the **repo root** by default — `git rev-parse --show-toplevel`
+on the variant directory. If the variant isn't in a git repo, falls back to
+`<variant-dir>/../DESIGN.md` (sibling of the variant folder). Override with
+--output. Repo root is the right default because (a) DESIGN.md is the only
+thing meant to be committed, (b) downstream coding agents look there first,
+and (c) the rest of `style-lab-output/` should be gitignored.
 
 Spec reference: https://github.com/google-labs-code/design.md
 Validate the result with:  npx @google/design.md lint <output>
 """
 import argparse
 import re
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
@@ -428,6 +433,19 @@ def render_markdown(name: str, description: str, style_name: str) -> str:
     return "\n".join(parts).strip() + "\n"
 
 
+def find_repo_root(start: Path) -> Path | None:
+    """Return the git toplevel containing `start`, or None if not in a repo."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(start), "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, check=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+    path = result.stdout.strip()
+    return Path(path) if path else None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -436,7 +454,11 @@ def main() -> int:
     parser.add_argument("--name", required=True, help="Brand / product name (goes in front-matter)")
     parser.add_argument("--description", default="", help="One-line product pitch")
     parser.add_argument("--style-name", default="", help='Display name of the chosen style (e.g. "Brutalism")')
-    parser.add_argument("--output", help="Where to write DESIGN.md (default: <variant-dir>/../DESIGN.md)")
+    parser.add_argument(
+        "--output",
+        help="Where to write DESIGN.md (default: <repo-root>/DESIGN.md if the "
+        "variant is inside a git repo, else <variant-dir>/../DESIGN.md)",
+    )
     args = parser.parse_args()
 
     variant_dir = Path(args.variant_dir).resolve()
@@ -469,10 +491,26 @@ def main() -> int:
     md = render_markdown(args.name, args.description, style_name)
     full = yaml + "\n\n" + md
 
-    output = Path(args.output) if args.output else variant_dir.parent / "DESIGN.md"
+    if args.output:
+        output = Path(args.output)
+        output_origin = "explicit --output"
+    else:
+        repo_root = find_repo_root(variant_dir)
+        if repo_root is not None:
+            output = repo_root / "DESIGN.md"
+            output_origin = f"repo root ({repo_root})"
+        else:
+            output = variant_dir.parent / "DESIGN.md"
+            output_origin = "variant parent (no enclosing git repo)"
+
+    pre_existed = output.exists()
     output.write_text(full, encoding="utf-8")
 
-    print(f"Wrote {output}")
+    if pre_existed:
+        print(f"Overwrote existing {output}")
+    else:
+        print(f"Wrote {output}")
+    print(f"  Destination:    {output_origin}")
     print(f"  Source variant: {variant_dir.name}")
     print(f"  Colors:    {len(color_freq)} unique → {len(classified)} tokens")
     for token, hex_v in classified:
