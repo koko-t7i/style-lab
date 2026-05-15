@@ -147,6 +147,25 @@ This:
 
 If you only need the static index without serving, you can call `generate_index.py` directly instead — but `serve_preview.py` handles regeneration + serving + local/remote detection in one shot, so prefer it.
 
+#### Server hygiene — it does NOT auto-stop
+
+The preview server is a detached background process (`start_new_session=True`), so **closing the Claude Code session does not stop it** — the port stays bound until reboot or an explicit kill. Re-running `serve_preview.py` on the *same* output dir cycles it cleanly (it kills the old PID first), but servers for *different* output dirs accumulate independently and leak ports over time.
+
+When a working session ends — the user picked a winner, abandoned the exploration, or you're done iterating — stop the server:
+
+```bash
+python3 <skill-path>/scripts/serve_preview.py <output-dir> --kill
+```
+
+If you suspect stray servers from earlier sessions are still holding ports, list and clean them:
+
+```bash
+pgrep -af "http\.server"          # show every running preview server + its cwd
+lsof -i :8765-8775                # which ports are still bound (default range)
+```
+
+Kill the specific PID from `<output-dir>/.preview-server.pid`, or re-run `serve_preview.py <that-dir> --kill` for a clean teardown.
+
 ### 6. Hand off to the user
 
 The script's output already tells the user exactly what to paste and what to open (and only prints the SSH tunnel block when it detects an SSH session). Don't re-explain it — the user has eyes. Just:
