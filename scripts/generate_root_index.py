@@ -23,6 +23,7 @@ KIND_LABELS = {
     "fresh-different": ("MORE", "fresh"),
     "refinement-of": ("REFINE", "refine"),
     "reference-driven": ("REF", "ref"),
+    "layout": ("LAYOUT", "layout"),
 }
 
 

@@ -4,11 +4,16 @@ Validate a single style-lab variant directory and flag quality issues.
 
 Usage:
     python3 validate_variant.py <variant-dir> [--state state.json] [--quiet]
+                                              [--mode auto|default|layout]
 
 The variant directory is expected to be of the form
 <output-dir>/batch-N/NN-style-slug/ and to contain index.html. If --state
 is omitted, the parent output directory's state.json is auto-discovered at
 <variant-dir>/../../state.json.
+
+Mode (default `auto`): in `auto`, look up the batch containing this variant
+in state.json; if `kind == "layout"`, enable layout mode. Layout mode adds
+the extended-field verbatim checks for Mode D variants.
 
 Checks run (severity in brackets):
 
@@ -20,6 +25,12 @@ Checks run (severity in brackets):
   [error]   headline-verbatim  - state.shared_copy.headline appears verbatim
   [error]   subhead-verbatim   - state.shared_copy.subhead appears verbatim
   [error]   brand-name-present - state.product.name appears at least once
+
+  Layout mode only (gated on field presence in shared_copy + variant claiming
+  to use the field by referencing any item from it):
+  [error]   pricing-verbatim           - all pricing_tiers[*].tier + price strings appear
+  [error]   testimonials-verbatim      - all testimonials[*].quote strings appear
+  [error]   features-extended-verbatim - all features_extended items appear
 
   [warn]    no-cdn-imports     - no unexpected CDN hosts (fonts.* allowed)
   [warn]    important-overuse  - !important appears <= 5 times
@@ -235,6 +246,75 @@ def _check_important_overuse(html_text: str) -> dict:
     )
 
 
+def _item_needles(item, item_keys) -> list[str]:
+    """Flatten one item (string or dict) into the needle strings it contributes."""
+    needles: list[str] = []
+    if isinstance(item, str):
+        s = item.strip()
+        if s:
+            needles.append(s)
+    elif isinstance(item, dict):
+        for key in item_keys:
+            v = item.get(key)
+            if isinstance(v, str) and v.strip():
+                needles.append(v.strip())
+            elif isinstance(v, (int, float)):
+                needles.append(str(v))
+    return needles
+
+
+def _check_extended_verbatim(
+    name: str,
+    rendered_text: str,
+    items,
+    item_keys: tuple[str, ...],
+) -> dict | None:
+    """Verify all needles from `items` appear verbatim in rendered text.
+
+    Gating: the check fires only when the variant clearly uses the field.
+    "Clearly uses" means at least 2 distinct items each contribute at least
+    one needle that appears in the rendered text — guards against ambiguous
+    single-word values (e.g. price="Custom") matching incidental substrings
+    in unrelated copy ("Custom RPC Gateway" brand name). When it fires, ALL
+    needles across ALL items must appear or the check fails.
+    """
+    grouped: list[list[str]] = []
+    for item in items or []:
+        ineedles = _item_needles(item, item_keys)
+        if ineedles:
+            grouped.append(ineedles)
+    if not grouped:
+        return None
+    haystack = _normalize_ws(rendered_text)
+    items_with_hit = sum(
+        1 for ineedles in grouped
+        if any(_normalize_ws(n) in haystack for n in ineedles)
+    )
+    if items_with_hit < 2:
+        # Variant doesn't claim to use this field — skip silently.
+        return None
+    missing: list[str] = []
+    total = 0
+    for ineedles in grouped:
+        for n in ineedles:
+            total += 1
+            if _normalize_ws(n) not in haystack:
+                missing.append(n)
+    if not missing:
+        return _record(
+            name, True,
+            f"{total} needles verbatim across {len(grouped)} items",
+            "error",
+        )
+    sample = missing[:2]
+    rest = "" if len(missing) <= 2 else f" (+{len(missing) - 2} more)"
+    return _record(
+        name, False,
+        f"missing {len(missing)}/{total} needles: {sample!r}{rest}",
+        "error",
+    )
+
+
 def _check_brand_colors(html_text: str, reference_summary: str | None) -> dict | None:
     if not reference_summary:
         return None
@@ -306,7 +386,7 @@ def _print_summary(records: list[dict], summary: dict, quiet: bool) -> None:
     )
 
 
-def validate(variant_dir: Path, state_path: Path | None) -> dict:
+def validate(variant_dir: Path, state_path: Path | None, mode: str = "auto") -> dict:
     index_path = variant_dir / "index.html"
     if not index_path.exists():
         raise FileNotFoundError(f"{index_path} not found")
@@ -322,6 +402,7 @@ def validate(variant_dir: Path, state_path: Path | None) -> dict:
     ]
 
     state = _load_state(state_path)
+    resolved_mode = _resolve_mode(mode, variant_dir, state)
     if state is not None:
         shared = state.get("shared_copy") or {}
         product = state.get("product") or {}
@@ -338,6 +419,25 @@ def validate(variant_dir: Path, state_path: Path | None) -> dict:
         brand_rec = _check_brand_name(rendered_text, product.get("name"))
         if brand_rec:
             records.append(brand_rec)
+
+        if resolved_mode == "layout":
+            extended_checks = (
+                ("pricing-verbatim",
+                 shared.get("pricing_tiers"),
+                 ("tier", "price")),
+                ("testimonials-verbatim",
+                 shared.get("testimonials"),
+                 ("quote",)),
+                ("features-extended-verbatim",
+                 shared.get("features_extended"),
+                 ("title", "body")),
+            )
+            for check_name, items, item_keys in extended_checks:
+                rec = _check_extended_verbatim(
+                    check_name, rendered_text, items, item_keys
+                )
+                if rec:
+                    records.append(rec)
 
     # Warnings (always run, regardless of state.json)
     records.append(_check_no_cdn(html_text))
@@ -367,6 +467,7 @@ def validate(variant_dir: Path, state_path: Path | None) -> dict:
         "variant": variant_dir.name,
         "variant_dir": str(variant_dir),
         "validated_at": _dt.datetime.now(_dt.timezone.utc).isoformat(timespec="seconds"),
+        "mode": resolved_mode,
         "checks": records,
         "summary": summary,
     }
@@ -390,6 +491,19 @@ def _resolve_reference_summary(variant_dir: Path, state: dict | None) -> str | N
     return state.get("reference_summary")
 
 
+def _resolve_mode(mode: str, variant_dir: Path, state: dict | None) -> str:
+    """Resolve --mode auto by looking at the variant's batch kind."""
+    if mode != "auto":
+        return mode
+    if not state:
+        return "default"
+    batch_dir_name = variant_dir.parent.name
+    for batch in state.get("batches", []) or []:
+        if batch.get("dir") == batch_dir_name:
+            return "layout" if batch.get("kind") == "layout" else "default"
+    return "default"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -404,6 +518,12 @@ def main() -> int:
     )
     parser.add_argument(
         "--quiet", action="store_true", help="Suppress stdout summary (still writes validation.json)"
+    )
+    parser.add_argument(
+        "--mode",
+        choices=("auto", "default", "layout"),
+        default="auto",
+        help="Validation mode (default: auto, infers layout from state.json batch kind).",
     )
     args = parser.parse_args()
 
@@ -425,7 +545,7 @@ def main() -> int:
         state_path = _discover_state(variant_dir)
 
     try:
-        report = validate(variant_dir, state_path)
+        report = validate(variant_dir, state_path, mode=args.mode)
     except FileNotFoundError as e:
         print(f"error: {e}", file=sys.stderr)
         return 1

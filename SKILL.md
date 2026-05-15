@@ -204,6 +204,24 @@ Then **you** (the agent reading this skill) must:
 7. **Optionally validate** with `npx @google/design.md lint <path>/DESIGN.md` (catches broken token references and WCAG contrast issues). Fix anything it flags.
 8. Tell the user the file is ready, where it landed (the script prints the destination — usually the repo root), and what they do with it: commit it, point Cursor / Claude Code at it, and every future UI prompt will respect the brand.
 
+### 7.5 Optional: explore LAYOUTS under the chosen style
+
+After the user has picked a style winner and `DESIGN.md` exists, they often want to feel different **page layouts** under that style — single-column long scroll vs bento 9-tile vs sidebar workspace vs pricing comparison. This is **Mode D** in `references/iteration-modes.md`.
+
+Trigger phrases (CN / EN): "再换几种排版" / "另一种布局" / "不同的页面结构" / "different layouts under this" / "try other compositions" / "what if it were a [bento / pricing / dashboard] page".
+
+The workflow mirrors style exploration but holds the style constant:
+
+1. **Lock the style.** Read the most recent non-layout batch's `user_picks`. Echo one line: "Locking **<style-name>** (from batch-N/NN-...), exploring 5 page layouts under it." No interview.
+2. **Pick 4–6 structurally distinct layouts** from `references/layout-catalog.md`. Don't ship five flavors of long-scroll.
+3. **Content gap check.** Each layout declares `Requires:` fields (`pricing_tiers >= 3`, `features_extended >= 9`, etc.). Diff against current `shared_copy`.
+4. **Expand `shared_copy` once if needed** (e.g., draft 3 pricing tiers, expand features 3→9). Confirm with the user in one yes/no message, then write the expansion back to `state.json.shared_copy.*` and record the audit trail in `shared_copy.expansions`. **Original fields stay locked** — only ADD, never rewrite. (See `iteration-modes.md` Mode D for the contract.)
+5. **Write `batches[N]`** to `state.json` with `kind: "layout"`, `locked_style: { source_variant, style_name, tokens_ref: "DESIGN.md" }`, `layout_axes: [...slug list...]`, `styles: [...human names...]`.
+6. **Dispatch subagents.** Every prompt MUST instruct them to (a) read `state.json` for `shared_copy` verbatim, (b) read `DESIGN.md` for tokens verbatim, (c) read the reference variant `batch-<prev>/<picked-slug>/index.html` for style fidelity, and (d) implement ONE specific layout slug from the catalog. The variable is layout only.
+7. **Validate.** Each variant: `python3 <skill-path>/scripts/validate_variant.py <output-dir>/batch-N/<variant-slug>`. The validator auto-detects `kind: "layout"` and turns on the extended verbatim checks (pricing / testimonials / features_extended) gated on which fields each layout uses.
+8. **Preview.** `python3 <skill-path>/scripts/serve_preview.py <output-dir>` — the tabbed root index now shows a LAYOUT tab next to FRESH / REFINE / REF tabs.
+9. **User picks a layout winner → update DESIGN.md Section 4 (Layout)** with the concrete structure: section sequence, grid recipe, density token, anchor element. MVP: write this by hand by reading the winning variant's HTML. (Future automation: `extract_design_md.py --update-section 4`.)
+
 ## Anti-patterns to avoid
 
 - **Five variants that look the same.** If you can't articulate, in one sentence, what makes each one different from the others, you picked the wrong set. Go back and re-pick.
@@ -217,7 +235,8 @@ Then **you** (the agent reading this skill) must:
 **References (read on demand)**
 - `references/style-catalog.md` — fallback style list with enough metadata to render each style if ui-ux-pro-max is not installed
 - `references/product-style-mapping.md` — common product types → recommended style sets, for picking quickly
-- `references/iteration-modes.md` — how to handle "more, but different" / "go deeper on #N" / "make it like X" iteration requests, plus per-style variation axes (read this before step 6.5)
+- `references/iteration-modes.md` — how to handle "more, but different" / "go deeper on #N" / "make it like X" / "再换种排版" iteration requests, plus per-style variation axes and the Mode D layout flow (read this before step 6.5 or §7.5)
+- `references/layout-catalog.md` — named page layouts (single-column long scroll, bento 9-tile, sidebar workspace, tab-based, card waterfall, hero+pricing) with skeletons, grid recipes, and content requirements. Read this before §7.5 (Mode D layout exploration).
 - `references/design-md-spec.md` — the 9-section DESIGN.md format spec + how to fill in each section well (read this before doing step 7)
 - `references/visual-signatures.md` — pre-catalogued brand DNA (palette + gradient + typeface + signature visual move) for ~10 commonly-named brands (Stripe / Linear / Vercel / Coinbase / Datadog / Notion / Apple / Arc / Anthropic / Aurpay). Check this first when the user names a brand, before running brand-DNA extraction.
 - `references/comparison-page-tradeoffs.md` — why the comparison index uses sidebar+scroll layout, what other layouts were tried and why they failed, and known CSS pitfalls (iframe height collapse, scroll-snap traps, lazy-load flicker). Read before changing the comparison index template.
