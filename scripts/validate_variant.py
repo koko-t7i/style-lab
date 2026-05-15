@@ -33,7 +33,7 @@ Checks run (severity in brackets):
   [error]   features-extended-verbatim - all features_extended items appear
 
   [warn]    no-cdn-imports     - no unexpected CDN hosts (fonts.* allowed)
-  [warn]    important-overuse  - !important appears <= 5 times
+  [warn]    important-overuse  - !important appears <= 30 times
   [warn]    brand-color-present - hex colors mentioned in reference_summary appear
 
 Writes <variant-dir>/validation.json and prints a one-line-per-check summary.
@@ -49,7 +49,11 @@ import sys
 from pathlib import Path
 
 MIN_SIZE_BYTES = 5 * 1024
-IMPORTANT_LIMIT = 5
+# Opinionated styles (Brutalism, Neubrutalism, Cyberpunk) legitimately lean on
+# !important for hard overrides; 5 produced false-positive noise on exactly the
+# styles the skill tells you NOT to soften. 30 still flags genuine specificity
+# wars without punishing committed styles.
+IMPORTANT_LIMIT = 30
 ALLOWED_CDN_HOSTS = {"fonts.googleapis.com", "fonts.gstatic.com"}
 HEX_RE = re.compile(r"#[0-9A-Fa-f]{6}\b")
 # Asset references only — restricting to src/href/url() avoids false-positives

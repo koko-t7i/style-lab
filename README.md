@@ -36,8 +36,11 @@ After the first batch:
 | *"再来几个不一样的"* / *"more, but different"* | Fresh-different | A new batch of N styles, excluding everything shown before |
 | *"02 这个方向再多看几版"* / *"go deeper on #N"* | Refinement | N variations of the picked style, varying along style-specific axes (palette / type / density / hero device / tone) |
 | *"做成 [Linear / Stripe / Aurpay] 这样"* + reference URL | Reference-driven | Extracts brand DNA from the URL, generates variants that all live inside that DNA but vary along family-internal sub-axes |
+| *"再换几种排版"* / *"different layouts under this style"* | Layout exploration | After a style is locked, holds it constant and varies the page layout/composition (single-column, bento, sidebar-workspace, pricing comparison) |
 
 State lives in `<output-dir>/state.json` and survives across sessions. Picked variants are tracked there too and surface as `★ Picked` badges in the comparison page on the next iteration.
+
+In the comparison page, each variant card has a **✓ Pick this** button (copies a ready-to-paste selection phrase so you don't retype which one you liked), a **🔗 Copy link** button (open that variant on your phone / another device), and a per-variant **notes box** with a **Copy all feedback** button — jot reactions per variant and paste them all back at once to drive a tighter refinement round.
 
 When you commit to a winner, run the DESIGN.md extractor to emit a Google-Stitch-format design spec downstream coding agents (Cursor / Claude Code) can read on every future prompt.
 
@@ -54,6 +57,7 @@ When you commit to a winner, run the DESIGN.md extractor to emit a Google-Stitch
     index.html                     # per-batch comparison page with sidebar TOC
   batch-2/
     ...
+  batch-1/comparison-bundle.html   # optional: single self-contained file (--bundle)
 ```
 
 Open `<output-dir>/index.html` and use the tabs at the top to switch between batches. Each tab shows that batch's variants with a sidebar TOC and viewport switcher (desktop / tablet / mobile). Picked variants get a blue `★ Picked` badge.
@@ -65,7 +69,9 @@ Open `<output-dir>/index.html` and use the tabs at the top to switch between bat
 - **Local**: prints just `http://localhost:PORT/index.html` — open and go.
 - **SSH** (detected via `$SSH_CONNECTION`): also prints a paste-ready `ssh -N -L PORT:localhost:PORT <host>` tunnel command. Force this branch by passing `--host <user@host>` or setting `$STYLE_LAB_SSH_HOST`.
 
-Stop the server with `python3 scripts/serve_preview.py <output-dir> --kill`.
+Stop the server with `python3 scripts/serve_preview.py <output-dir> --kill`, or reap every preview server started across sessions/dirs with `python3 scripts/serve_preview.py --kill-all`.
+
+For users who can't run an SSH tunnel (locked-down laptop, just want a file), generate a single self-contained file instead: `python3 scripts/generate_index.py <batch-dir> --bundle` writes `comparison-bundle.html` with every variant inlined — it opens straight from `file://`, no server needed.
 
 ## Repo layout
 
@@ -78,7 +84,8 @@ references/
   style-catalog.md           # ~80 distinct visual styles with vocabulary
   product-style-mapping.md   # product type → recommended style set
   visual-signatures.md       # named-brand DNA catalog (Stripe, Linear, Apple, etc.)
-  iteration-modes.md         # Mode A/B/C state machine for "another round"
+  iteration-modes.md         # Mode A/B/C/D state machine for "another round"
+  layout-catalog.md          # named page layouts for Mode D layout exploration
   design-md-spec.md          # Google Stitch DESIGN.md spec, post-pick handoff
   comparison-page-tradeoffs.md  # design notes on the comparison page itself
 scripts/
@@ -89,11 +96,14 @@ scripts/
   extract_design_md.py       # post-pick, emit DESIGN.md from the chosen variant
   init_iteration.py          # migrate a pre-iteration flat output dir to batched layout
   validate_variant.py        # sanity-check a generated variant
+evals/
+  evals.json                 # behavioral eval suite (incl. bilingual trigger prompts)
 .claude-plugin/
   plugin.json                # plugin manifest
   marketplace.json           # marketplace entry
 skills/
   style-lab/                 # symlinks back to root (plugin format requirement)
+.gitignore                   # ignores caches + throwaway exploration artifacts
 ```
 
 For the full agent spec (style picking rules, refinement axes, reference-driven flow, failure modes), read [`SKILL.md`](./SKILL.md).

@@ -16,7 +16,8 @@
     {
       "id": 3,
       "prompt": "I have a one-pager for an AI app I'm prototyping called 'Loom'. Loom takes a recording of any meeting and generates a structured doc with decisions, action items, and a chronological narrative. For PMs and consultants. I genuinely don't know what it should look like — I want to see a wide range of directions including some I might reject, so I can figure out my taste. Put files in ./loom-prototypes.",
-      "expected_output": "3-5 self-contained HTML variants in ./loom-prototypes/<NN-style-slug>/index.html. Should span the full design space including at least one safe option (Minimalism/Modern Dark) AND at least one bold/wildcard (Brutalism, Cyberpunk, or similar). Comparison index generated. The variants should be intentionally diverse to help the user discover their own taste."
+      "expected_output": "3-5 self-contained HTML variants in ./loom-prototypes/<NN-style-slug>/index.html. Should span the full design space including at least one safe option (Minimalism/Modern Dark) AND at least one bold/wildcard (Brutalism, Cyberpunk, or similar). Comparison index generated. The variants should be intentionally diverse to help the user discover their own taste.",
+      "files": []
     },
     {
       "id": 4,
@@ -27,7 +28,7 @@
         "Skill detects existing state.json and follows Mode B (does NOT overwrite batch-1/ or generate fresh-different styles).",
         "All new variants are written under ./pulsewatch-styles/batch-2/, not batch-1/.",
         "At least 4 variant directories exist under batch-2/ (e.g. batch-2/01-*, 02-*, 03-*, 04-*), each with index.html.",
-        "state.json is updated so batches[1].kind equals 'refinement-of' (or the equivalent refinement marker per references/iteration-modes.md).",
+        "state.json is updated so batches[1].kind equals 'refinement' (the canonical Mode B value per the kind-enum table in references/iteration-modes.md).",
         "state.json batches[1].based_on is a list containing 'Modern Dark'.",
         "state.json batches[1].dir equals 'batch-2'.",
         "Subagent prompts dispatched for each refinement variant include the literal substring 'Reference variant (read first):' followed by the path to batch-1/02-modern-dark/index.html.",
@@ -60,7 +61,7 @@
       "setup": "Pre-populate ./ledgerline-design/batch-1/02-linear-gradient-hero/index.html with a self-contained variant that uses Ledgerline's locked copy and contains at minimum: (a) a hero section with `background: linear-gradient(135deg, #5B7FFF 0%, #A78BFA 100%)` (or equivalent inline-style), (b) at least 2 Google Fonts referenced via fonts.googleapis.com, (c) a primary CTA button with its own solid color, (d) a footer with one more solid color. Also pre-populate ./ledgerline-design/state.json with product, shared_copy, and batches[0] referencing this variant.",
       "expectations": [
         "extract_design_md.py is invoked with the variant directory path and --name 'Ledgerline'.",
-        "DESIGN.md is written to ./ledgerline-design/batch-1/DESIGN.md (sibling of variant folders).",
+        "DESIGN.md is written to extract_design_md.py's default location: the git repo root (git rev-parse --show-toplevel on the variant dir) when the variant is inside a git repo, otherwise the variant's parent dir (<output>/batch-1/DESIGN.md). The harness must accept the repo-root location — SKILL.md step 7 deliberately passes no --output, and repo root is the intended default (DESIGN.md is the only committed artifact). Do NOT require ./ledgerline-design/batch-1/DESIGN.md specifically.",
         "The YAML front-matter contains a top-level 'gradients:' key (not just 'colors:').",
         "At least one gradient entry in the YAML has direction '135deg' and contains both stop colors (case-insensitive match for #5B7FFF and #A78BFA).",
         "The 'colors:' block does NOT contain a token literally named 'accent' or 'highlight' for #5B7FFF or #A78BFA — those hexes are renamed with a -start / -end / -mid suffix tying them to their gradient (e.g. brand-start, brand-end).",
@@ -100,8 +101,26 @@
         "./old-output/state.json exists after migration and parses as JSON with batches[0].dir == 'batch-1', batches[0].kind == 'fresh', and batches[0].styles containing all three migrated style display names ('Minimalism', 'Bento Grid', 'Modern Dark').",
         "After migration, batch-2 is generated at ./old-output/batch-2/ with 4 new variant subdirectories, each with index.html.",
         "batch-2 styles are NOT a repeat of any style from batch-1 (exclusion list honored — no second Minimalism / Bento Grid / Modern Dark).",
-        "state.json is updated post-batch-2 to include batches[1] with dir=='batch-2' and kind=='fresh-different' (or 'fresh' if the skill uses that label for Mode A — match references/iteration-modes.md).",
+        "state.json is updated post-batch-2 to include batches[1] with dir=='batch-2' and kind=='fresh-different' (the canonical Mode A value per the kind-enum table in references/iteration-modes.md).",
         "serve_preview.py is run on the OUTPUT ROOT (./old-output/) so the new top-level tabbed index covers both batch-1 and batch-2."
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Bento 那版就定了 — now I want to feel different page layouts under it. 再换几种排版:single-column long scroll、bento 9 格、sidebar workspace、还有一个 pricing 对比页。Output dir 还是 ./atlas-design/.",
+      "expected_output": "Mode D layout-exploration run. The skill detects state.json, confirms a style winner was already picked (Bento Grid), locks it, and generates 4–6 variants under ./atlas-design/batch-2/ that vary ONLY the page layout while holding the locked Bento style constant (same fonts, accent, button/card identity from DESIGN.md). It computes the content gap for the chosen layouts, expands shared_copy ONCE (adding pricing_tiers / features_extended without rewriting the locked original 4 fields), confirms the expansion with a single yes/no message, and records the lineage in state.json. The validator runs in layout mode.",
+      "setup": "Pre-populate ./atlas-design/ with: (a) state.json where product.name='Atlas', shared_copy has the locked original four fields (headline, subhead, features[3], cta_primary) populated, batches[0] kind='fresh' dir='batch-1' styles=['Minimalism','Bento Grid','Modern Dark','Brutalism'] user_picks=['Bento Grid']; (b) batch-1/02-bento-grid/index.html as a valid Bento variant using that shared_copy verbatim; (c) batch-1/index.html; (d) a DESIGN.md at the repo root extracted from the Bento variant (colors/typography/spacing tokens). No batch-2/ yet.",
+      "expectations": [
+        "Skill detects state.json, identifies Bento Grid as the already-picked style winner from batch-1, and does NOT run an interview or re-pick fresh styles.",
+        "All new variants are written under ./atlas-design/batch-2/, not batch-1/.",
+        "At least 4 variant directories exist under batch-2/ with slugs matching layout-catalog names (e.g. 01-single-column-long-scroll, 02-bento-9-tile, 03-sidebar-workspace, 04-hero-pricing-comparison), each with index.html.",
+        "state.json batches[1].kind equals 'layout' (the canonical Mode D value per the kind-enum table in references/iteration-modes.md).",
+        "state.json batches[1].locked_style.source_variant points at batch-1/02-bento-grid (or equivalent picked-variant path) and locked_style.style_name names Bento Grid; based_on is a list containing the Bento style name.",
+        "state.json batches[1].layout_axes is a list of the layout slugs, and batches[1].styles is the human-readable layout names.",
+        "shared_copy is expanded append-only: the original headline / subhead / features[0..2] / cta_primary are byte-identical to batch-1's, and any new fields (pricing_tiers, features_extended) are ADDED with a shared_copy.expansions audit entry recording added_in_batch and source — the original fields are NOT rewritten.",
+        "Every Mode D subagent prompt instructs the agent to read state.json shared_copy verbatim, read the repo-root DESIGN.md tokens verbatim, AND read the reference variant batch-1/02-bento-grid/index.html for style fidelity, varying ONLY the layout.",
+        "validate_variant.py is run on each batch-2 variant and auto-detects layout mode (batches[1].kind=='layout'), enabling the extended pricing/features-extended verbatim checks; the locked headline/subhead/cta_primary still appear verbatim in every variant.",
+        "serve_preview.py is invoked on the OUTPUT ROOT (./atlas-design/) so the tabbed root index gains a LAYOUT tab alongside the batch-1 style tab."
       ]
     }
   ]

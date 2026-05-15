@@ -18,10 +18,11 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "root_index_template.html"
 
+# Keys MUST match the canonical `kind` enum in references/iteration-modes.md.
 KIND_LABELS = {
     "fresh": ("FRESH", "fresh"),
     "fresh-different": ("MORE", "fresh"),
-    "refinement-of": ("REFINE", "refine"),
+    "refinement": ("REFINE", "refine"),
     "reference-driven": ("REF", "ref"),
     "layout": ("LAYOUT", "layout"),
 }

@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# OMC / agent tooling scratch dirs
+.omc/
+
+# Editor / OS cruft
+.DS_Store
+*.swp
+*~
+
+# style-lab runtime + exploration artifacts (throwaway; never committed)
+style-lab-output/
+.preview-server.pid
+.preview-server.log
+comparison-bundle.html
+dna.json

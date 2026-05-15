@@ -15,6 +15,20 @@ The output is **runnable HTML**, not screenshots and not React. HTML opens in an
 
 ## Workflow
 
+### Resolving `<skill-path>` and `<ui-ux-pro-max-path>`
+
+Every script invocation below is written `python3 <skill-path>/scripts/...`.
+**`<skill-path>` is the directory containing this SKILL.md** — the same
+directory that has `scripts/`, `references/`, and `assets/` next to it.
+Resolve it once at the start (it's the parent of the `scripts/` you're about
+to call) and substitute the real absolute path into every command; don't pass
+the literal string `<skill-path>`.
+
+`<ui-ux-pro-max-path>` is the install directory of the optional `ui-ux-pro-max`
+skill, only needed in step 2 and only if that skill is installed. If you can't
+locate it, skip straight to the `references/style-catalog.md` fallback — don't
+block on it.
+
 ### 1. Gather just enough about the product
 
 Read what the user gave you. If they hand you a one-pager or PRD, that is enough. If all you have is a one-line pitch, ask one or two pointed questions — *only* what you actually need to make style choices:
@@ -105,6 +119,8 @@ One state.json edit propagates to all subagents next batch.
 
 **State.json must always be written before dispatching any variant subagent.** If you're about to dispatch and state.json doesn't have shared_copy populated, write it first.
 
+**Also write `batches[N].blurbs[i]`** — a short one-liner per variant of "what I was going for / who it's for" (the same thing you'd tell the user in step 6). It's an array parallel to `styles`; one caption per variant. The comparison page renders it under each variant's title so the user reads your intent on the card itself instead of scrolling back to chat. Keep each blurb to one clause.
+
 #### Validate every variant before moving to step 5
 
 After each subagent finishes, run:
@@ -116,6 +132,25 @@ python3 <skill-path>/scripts/validate_variant.py <output-dir>/batch-N/<variant-s
 It auto-checks: no lorem ipsum, headline + subhead + brand name appear verbatim (text-content match, ignoring inline `<em>` styling), HTML parses cleanly, file is non-trivial size (≥5KB), at least one `<style>` block, primary CTA text present. If state.json's `reference_summary` mentions specific hex values (Mode C), it warns when none of them appear in the variant — catches "agent forgot to use the brand palette" failures.
 
 If any error-severity check fails, **regenerate that variant before going to step 5**. Don't ship "mostly works" — broken or off-copy variants poison the whole comparison and waste user attention. The script writes `<variant-dir>/validation.json` with full evidence, and exits non-zero on failure for easy scripted gating.
+
+#### Visual sanity pass — the validator does NOT render
+
+`validate_variant.py` checks copy fidelity, HTML structure, and size — it
+**never renders the page**. A timid Brutalism page, invisible low-contrast
+text, a hero that collapses at 375px, or a "five variants that look the same"
+batch all pass validation cleanly. That is exactly the failure class this
+skill exists to prevent, so do a visual pass before handing off:
+
+- If the `visual-verdict` skill is available, run it on each variant's
+  `index.html` (desktop + 375px mobile) and treat a fail verdict like a
+  failed error-severity check — regenerate before step 5.
+- Otherwise, at minimum open the comparison index yourself once the preview
+  server is up (step 5) and eyeball: does each variant actually commit to its
+  style, is body text readable, does nothing overflow at mobile width, and
+  can you state in one sentence what makes each distinct? If not, regenerate.
+
+Copy/structure validation and visual validation are different gates; passing
+the script is necessary but not sufficient.
 
 #### Layout / CSS pitfalls
 
@@ -157,14 +192,20 @@ When a working session ends — the user picked a winner, abandoned the explorat
 python3 <skill-path>/scripts/serve_preview.py <output-dir> --kill
 ```
 
-If you suspect stray servers from earlier sessions are still holding ports, list and clean them:
+If you suspect stray servers from earlier sessions are still holding ports, the cleanest reap is:
+
+```bash
+python3 <skill-path>/scripts/serve_preview.py --kill-all
+```
+
+`serve_preview.py` keeps a cross-session registry (`~/.style-lab-servers.json`) of every server it has started, so `--kill-all` stops all of them at once regardless of which output dir they belong to — no need to hunt PIDs by hand. To inspect before reaping:
 
 ```bash
 pgrep -af "http\.server"          # show every running preview server + its cwd
 lsof -i :8765-8775                # which ports are still bound (default range)
 ```
 
-Kill the specific PID from `<output-dir>/.preview-server.pid`, or re-run `serve_preview.py <that-dir> --kill` for a clean teardown.
+For a single directory, re-run `serve_preview.py <that-dir> --kill` instead.
 
 ### 6. Hand off to the user
 
@@ -173,6 +214,16 @@ The script's output already tells the user exactly what to paste and what to ope
 1. Re-paste the URL (and the SSH command, if one was printed) prominently in your reply — they're easy to miss in script output.
 2. Briefly (2–3 lines per variant) say what you were going for with each one and what kind of product/audience it's best for.
 3. Don't editorialize about which is "best" — that's exactly what the user is here to decide.
+
+Each comparison card now has **✓ Pick this** and **🔗 Copy link** buttons: the user clicks ✓ Pick this to copy a ready-made paste-back selection phrase (`Go with #N — NN Name`) and pastes it straight back into chat instead of retyping which one they want. Each card also has a **per-variant notes box** plus a sidebar **Copy all feedback** button — tell the user they can jot reactions per variant and copy the whole set back in one paste; that aggregated feedback is exactly what makes a follow-up Mode B refinement land instead of guessing.
+
+**Non-tunnel handoff (no server, no SSH).** For users who can't or won't run the `ssh -N -L` tunnel (locked-down corp laptop, just wants a file to open), generate the single-file bundle instead:
+
+```bash
+python3 <skill-path>/scripts/generate_index.py <batch-dir> --bundle
+```
+
+This writes `<batch-dir>/comparison-bundle.html` with every variant inlined via `srcdoc` — send them that one file and it opens straight from `file://` with no server. Use it as a fallback when the tunnel is impractical, not as the default (the served version is lighter and links are clickable).
 
 If the user picks one or asks to "go deeper on #2", you can then either:
 - generate a second iteration of just that style with refinements they asked for, or
