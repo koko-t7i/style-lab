@@ -257,15 +257,37 @@
 
   .variant-header {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: baseline;
     padding: 0 4px 16px;
+  }
+
+  /* title (col 1) and actions (col 2) keep the original baseline row;
+     the optional intent caption drops to a full-width line under them */
+  .variant-header .variant-title { flex: 0 1 auto; order: 1; }
+  .variant-header .variant-actions { flex: 0 0 auto; order: 2; }
+  .variant-header .variant-intent {
+    order: 3;
+    flex: 1 0 100%;
   }
 
   .variant-title {
     display: flex;
     align-items: baseline;
     gap: 14px;
+  }
+
+  .variant-intent {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 400;
+    letter-spacing: -0.005em;
+    margin-top: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
   }
 
   .variant-num {
@@ -323,6 +345,45 @@
     border-color: var(--text);
   }
 
+  /* pick / link buttons: peers of .variant-actions a (same metrics) */
+  .variant-actions .act-pick,
+  .variant-actions .act-link {
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 150ms;
+    line-height: 1.45;
+  }
+
+  /* secondary, like the existing Open link */
+  .variant-actions .act-link:hover {
+    color: var(--text);
+    border-color: var(--text);
+  }
+
+  /* primary affordance — the pick accent */
+  .variant-actions .act-pick {
+    color: var(--pick);
+    border-color: var(--pick);
+    background: var(--pick-soft);
+    font-weight: 600;
+  }
+
+  .variant-actions .act-pick:hover {
+    color: var(--surface);
+    background: var(--pick);
+    border-color: var(--pick);
+  }
+
+  .variant-actions .act-pick:active,
+  .variant-actions .act-link:active { transform: translateY(1px); }
+
   .variant-frame {
     height: calc(100vh - 110px);
     min-height: 600px;
@@ -345,6 +406,130 @@
 
   body.viewport-tablet .variant-frame iframe { width: 768px; max-width: 100%; }
   body.viewport-mobile .variant-frame iframe { width: 390px; max-width: 100%; }
+
+  /* per-variant scratchpad note */
+  .variant-notes {
+    padding: 14px 4px 0;
+  }
+
+  .note-input {
+    display: block;
+    width: 100%;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 11px;
+    resize: vertical;
+    min-height: 52px;
+    transition: border-color 150ms;
+  }
+
+  .note-input::placeholder { color: var(--text-faint); }
+
+  .note-input:focus {
+    outline: none;
+    border-color: var(--border-strong);
+  }
+
+  /* copy-all-feedback button in the sidebar .controls block */
+  #copy-feedback {
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--pick);
+    background: var(--pick-soft);
+    border: 1px solid var(--pick);
+    border-radius: 7px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: all 150ms;
+  }
+
+  #copy-feedback:hover {
+    color: var(--surface);
+    background: var(--pick);
+  }
+
+  #copy-feedback:active { transform: translateY(1px); }
+
+  /* toast */
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%) translateY(8px);
+    background: var(--text);
+    color: var(--surface);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    padding: 10px 18px;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+    z-index: 1000;
+    max-width: 80vw;
+    text-align: center;
+  }
+
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* onboarding hint bar — slim overlay pinned to top of main column */
+  #hint-bar {
+    position: fixed;
+    top: 0;
+    left: var(--sidebar-w);
+    right: 0;
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--pick-soft);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 11px;
+    line-height: 1.4;
+    padding: 7px 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #hint-bar .hint-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #hint-dismiss {
+    flex-shrink: 0;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--text-dim);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 150ms;
+  }
+
+  #hint-dismiss:hover { color: var(--text); background: rgba(0,0,0,0.05); }
+
+  /* when hint is showing, push the main scroll content down so the
+     first variant is never permanently covered */
+  body.hint-on main { padding-top: 32px; }
 
   .empty-state {
     grid-column: 1 / -1;
@@ -372,15 +557,74 @@
     .toc-item.active { border-color: var(--accent); border-left-width: 1px; }
     .controls { display: none; }
     .variant-section { padding: 18px; }
+    /* sidebar stacks on top → hint bar spans full width */
+    #hint-bar { left: 0; }
+    .variant-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .variant-header .variant-actions { flex-wrap: wrap; }
+    .variant-header .variant-intent { flex-basis: auto; white-space: normal; }
   }
 </style>
 </head>
 <body>
+<div id="hint-bar" hidden>
+  <span class="hint-text">Scroll or press 1–N to flip through · on a variant, click "✓ Pick this" to copy a selection phrase and paste it back in chat to lock it in · jot reactions in the notes below and grab them all with "Copy all feedback"</span>
+  <button id="hint-dismiss" type="button" aria-label="dismiss">×</button>
+</div>
 <div class="app">
   __APP_BODY__
 </div>
+<div id="toast" role="status" aria-live="polite"></div>
 <script>
   const variants = __VARIANTS_JSON__;
+
+  // --- reusable toast ---
+  let toastTimer = null;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+
+  // --- clipboard with file:// / non-secure fallback ---
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+  function legacyCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  // --- onboarding hint bar ---
+  (function () {
+    const bar = document.getElementById('hint-bar');
+    if (!bar) return;
+    if (localStorage.getItem('style-lab:hint-dismissed') === '1') return;
+    bar.hidden = false;
+    document.body.classList.add('hint-on');
+    const dismiss = () => {
+      try { localStorage.setItem('style-lab:hint-dismissed', '1'); } catch (e) {}
+      bar.remove();
+      document.body.classList.remove('hint-on');
+    };
+    const btn = document.getElementById('hint-dismiss');
+    if (btn) btn.addEventListener('click', dismiss);
+  })();
 
   if (variants.length) {
     const tocItems = document.querySelectorAll('.toc-item');
@@ -431,6 +675,70 @@
       e.preventDefault();
       sections[next].scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+
+    // pick → copy pasteback phrase
+    document.querySelectorAll('.act-pick').forEach(btn => {
+      btn.addEventListener('click', () => {
+        Promise.resolve(copyText(btn.dataset.pasteback || ''))
+          .then(() => showToast('Selection phrase copied — paste it back in chat to lock this one'));
+      });
+    });
+
+    // link → copy direct url
+    document.querySelectorAll('.act-link').forEach(btn => {
+      btn.addEventListener('click', () => {
+        Promise.resolve(copyText(btn.dataset.url || ''))
+          .then(() => showToast('Link copied — open this variant on your phone or another device'));
+      });
+    });
+
+    // notes persistence (localStorage, debounced) + restore
+    const NOTES_KEY = 'style-lab:notes:' + location.pathname;
+    const noteInputs = document.querySelectorAll('.note-input');
+    let savedNotes = {};
+    try { savedNotes = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}') || {}; } catch (e) { savedNotes = {}; }
+    noteInputs.forEach(ta => {
+      const idx = ta.dataset.idx;
+      if (Object.prototype.hasOwnProperty.call(savedNotes, idx)) ta.value = savedNotes[idx];
+    });
+    let saveTimer = null;
+    function persistNotes() {
+      const map = {};
+      noteInputs.forEach(ta => {
+        const v = ta.value;
+        if (v && v.trim()) map[ta.dataset.idx] = v;
+      });
+      try { localStorage.setItem(NOTES_KEY, JSON.stringify(map)); } catch (e) {}
+    }
+    noteInputs.forEach(ta => {
+      ta.addEventListener('input', () => {
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(persistNotes, 400);
+      });
+    });
+
+    // copy-all-feedback
+    const copyFeedbackBtn = document.getElementById('copy-feedback');
+    if (copyFeedbackBtn) {
+      copyFeedbackBtn.addEventListener('click', () => {
+        const byIdx = {};
+        variants.forEach(v => { byIdx[v.idx] = v; });
+        const lines = [];
+        noteInputs.forEach(ta => {
+          const note = (ta.value || '').trim();
+          if (!note) return;
+          const v = byIdx[parseInt(ta.dataset.idx, 10)];
+          const num = v ? v.num : ta.dataset.idx;
+          const name = v ? v.name : '';
+          lines.push('#' + num + ' ' + name + ': ' + note);
+        });
+        if (!lines.length) { showToast('No notes written yet'); return; }
+        const header = (document.title.split(' — ')[0] || 'style-lab') + ' — design feedback';
+        const block = header + '\n\n' + lines.join('\n');
+        Promise.resolve(copyText(block))
+          .then(() => showToast('All feedback copied (' + lines.length + ' item' + (lines.length === 1 ? '' : 's') + ')'));
+      });
+    }
   }
 </script>
 </body>

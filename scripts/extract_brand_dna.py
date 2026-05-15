@@ -9,7 +9,8 @@ This script fetches the raw HTML of each URL using `curl -sL` (intentionally —
 the Claude WebFetch tool prose-summarizes pages and loses inline color/font
 detail; we need the raw markup), then mines:
 
-  - Solid hex colors from `style="..."` inline declarations.
+  - Solid hex colors from `style="..."` inline declarations AND `<style>`
+    block rules (class-based sites keep brand colors in `<style>`).
   - linear-gradient(...) / radial-gradient(...) declarations with stops + direction.
   - Google Fonts families from <link href="fonts.googleapis.com/css...family=...">.
   - CSS custom properties (`--name: value;`) inside <style> blocks.
@@ -214,13 +215,31 @@ def fetch_html(url: str, timeout: int) -> str:
 def extract_inline_style_hexes(html: str) -> Counter:
     """Hex frequencies from `style="..."` attributes only.
 
-    Restricting to inline style attrs gives us actually-rendered brand colors
-    (e.g. CTA button bg, headline color) and avoids spam from third-party
-    embedded SVGs.
+    Inline style attrs are actually-rendered brand colors (CTA bg, headline
+    color) with no third-party-SVG spam — but class-based sites (Stripe,
+    Linear, anything Tailwind-ish) put almost everything in `<style>` blocks
+    or external CSS, so inline-only extraction comes back nearly empty for
+    exactly the brands users name most. `extract_style_block_hexes` covers
+    that case; this function stays inline-only so callers can weight the two
+    sources differently if needed.
     """
     counts: Counter = Counter()
     for style_val in INLINE_STYLE_RE.findall(html):
         for hex_v in HEX_RE.findall(style_val):
+            counts[normalize_hex(hex_v)] += 1
+    return counts
+
+
+def extract_style_block_hexes(html: str) -> Counter:
+    """Hex frequencies from inside `<style>...</style>` block bodies.
+
+    Catches class-based brand colors that never appear in an inline `style=`
+    attribute. Gradients are handled separately (`extract_gradients` already
+    scans the whole document), so this is solids only.
+    """
+    counts: Counter = Counter()
+    for block in STYLE_BLOCK_RE.findall(html):
+        for hex_v in HEX_RE.findall(block):
             counts[normalize_hex(hex_v)] += 1
     return counts
 
@@ -613,8 +632,10 @@ def extract_dna(urls: list[str], timeout: int) -> dict:
 
     combined = "\n".join(all_html)
 
-    # 1. Solids
+    # 1. Solids — inline style attrs + <style> block rules (class-based sites
+    #    keep brand colors in <style>, so inline-only misses them entirely).
     solid_counts = extract_inline_style_hexes(combined)
+    solid_counts.update(extract_style_block_hexes(combined))
     # Filter social-media + pure-grey scaffolding noise we don't care about.
     for noise in list(SOCIAL_BRAND_HEXES):
         solid_counts.pop(noise, None)

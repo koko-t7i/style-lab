@@ -13,6 +13,26 @@ Detect the mode from natural language. When ambiguous, ask one short clarifying 
 
 ---
 
+## Canonical `kind` values
+
+`state.json.batches[].kind` drives every downstream decision (exclusion list,
+refinement lineage, validator mode, comparison-tab labelling). It is a closed
+enum — use **exactly** these strings, nothing else:
+
+| `kind` | Set by | Meaning |
+|---|---|---|
+| `fresh` | First run (SKILL.md steps 1–6) **and** `init_iteration.py` migration | The initial batch — no prior styles to exclude |
+| `fresh-different` | Mode A | New styles, none seen in any prior batch |
+| `refinement` | Mode B | Variations *of* a picked style along style-specific axes |
+| `reference-driven` | Mode C | Variants that all live inside an extracted brand DNA |
+| `layout` | Mode D | Style locked; only the page layout varies |
+
+Anything reading `kind` (`validate_variant.py`, `generate_index.py`,
+`serve_preview.py`) treats unknown values as `default`/`fresh`, so a typo
+silently degrades behavior instead of erroring — get the literal right.
+
+---
+
 ## State tracking
 
 Maintain a single file at `<output-dir>/state.json`:
@@ -31,6 +51,13 @@ Maintain a single file at `<output-dir>/state.json`:
       "based_on": [],
       "dir": "batch-1",
       "styles": ["Modern Dark", "Bento Grid", "Cyberpunk HUD", "Neubrutalism", "Terminal"],
+      "blurbs": [
+        "calm, enterprise-grade — for infra buyers who want 'serious'",
+        "playful multi-tile — for product-led teams",
+        "high-energy neon — for crypto-native devs",
+        "loud and opinionated — for a bold launch",
+        "stripped-back docs feel — for terminal-first users"
+      ],
       "user_picks": []
     },
     {
@@ -86,6 +113,8 @@ Maintain a single file at `<output-dir>/state.json`:
   }
 }
 ```
+
+**`batches[].blurbs`** (optional): an array parallel to `styles` (same index alignment), one short caption per variant describing what that direction is going for / who it's for. When present it renders on each comparison card as a one-line intent line under the variant title. Omit it or leave an entry empty to show no caption.
 
 Read this on every iteration. The flat list of all `batches[*].styles` is your **exclusion list** for Mode A. The latest `batches[*].user_picks` tells you what to refine for Mode B. The most recent `batches[i].user_picks` whose batch is `kind != "layout"` is the **locked style** for Mode D.
 
@@ -232,6 +261,7 @@ For styles not listed here, **derive variation axes from the style's vocabulary 
 - **Keep variants distinguishable in 1 sentence.** If you can't say "this one is the spacious-Inter-with-metric-hero version", you didn't vary clearly enough.
 - **Be willing to pick 3 instead of 5.** If the style only has 3 meaningfully-different variations worth showing, don't pad with redundant ones.
 - **Save in `batch-N/`** with descriptive slugs: `01-bento-cream-asymmetric`, `02-bento-dark-symmetric`, etc. The slug should encode the axis combination so the user can skim names and know what they're seeing.
+- **Update `state.json`** with the new batch entry: `kind: "refinement"`, `based_on: [<picked style name(s)>]`, `dir: "batch-N"`, `styles: [<slug-derived names>]`. Then run `serve_preview.py` on the output ROOT.
 
 ---
 
@@ -319,7 +349,7 @@ Each catalog entry declares a `Requires:` line (e.g., `pricing_tiers >= 3`, `fea
 
 1. **Compute `needs_expansion[]`**: the union of fields any chosen layout requires that aren't yet in `shared_copy`.
 2. **If `needs_expansion[]` is non-empty**, generate concrete copy for those fields (grounded in `product.description` and `product.audience`). Pricing tiers default to Starter / Pro / Enterprise with realistic prices; testimonials are 2–3 entries with `{quote, author, role}` (no avatars); features_extended is a SUPERSET that contains the original 3 at indices 0–2 plus N-3 new entries.
-3. **Confirm once with the user** in ONE message: "为了画 9 格 bento 和 pricing 对比，我把 features 扩到 9 个、起草了 3 档 pricing tiers，OK 吗？" Single yes/no — not an interview. If they reject, drop the offending layouts from the batch.
+3. **Confirm once with the user** in ONE message, e.g. "To render the 9-tile bento and the pricing comparison I expanded features to 9 and drafted 3 pricing tiers — OK?" Single yes/no — not an interview. If they reject, drop the offending layouts from the batch.
 4. **Write to `state.json`**: extend `shared_copy.*` with the new fields and record `shared_copy.expansions.<field> = { "added_in_batch": N, "source": "<layout-slug>" }`. Lock it. Future batches read the expanded copy verbatim.
 
 **The lock principle still holds**: once `pricing_tiers` is written, no later batch may rewrite it. A different pricing layout later gets `pricing_tiers_extended`, not a rewrite.
@@ -401,8 +431,12 @@ user prompt arrives
   │           │    └─ YES → Mode A (Fresh-different). Use exclusion list from state.json.
   │           │
   │           └─ AMBIGUOUS → ask one short question:
-  │                "想看几个完全不同的方向，还是在 [latest picks or candidates] 上再衍生？"
-  │                (If layout-related: "想换种布局/排版，还是再来几个不同的风格？")
+  │                "Want a few totally different directions, or more variations on
+  │                 [latest picks or candidates]?"
+  │                (If layout-related: "Change the layout/composition, or show a few
+  │                 different styles instead?")
   │
-  └─ generate → write to batch-N/, update state.json, run serve_preview.py on batch-N/
+  └─ generate → write to batch-N/, update state.json, run serve_preview.py on the
+                output ROOT (the dir containing state.json — NEVER on batch-N/ directly,
+                or the tabbed top-level index won't regenerate)
 ```

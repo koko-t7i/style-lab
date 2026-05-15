@@ -6,6 +6,7 @@ command the user pastes locally to view it from their laptop browser.
 Usage:
     python3 serve_preview.py <output-dir> [--port PORT] [--host USER@HOST]
     python3 serve_preview.py <output-dir> --kill       # stop the server
+    python3 serve_preview.py --kill-all                # stop EVERY preview server
     python3 serve_preview.py <output-dir> --no-regen   # don't rebuild index.html
 
 Behavior:
@@ -20,6 +21,7 @@ The HTTP server stays up after this script exits. Stop it with --kill, or by
 killing the PID in .preview-server.pid.
 """
 import argparse
+import json
 import os
 import socket
 import subprocess
@@ -31,6 +33,38 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 GENERATE_INDEX = SCRIPT_DIR / "generate_index.py"
 GENERATE_ROOT_INDEX = SCRIPT_DIR / "generate_root_index.py"
 PORT_RANGE = (8765, 9000)
+
+# Cross-session registry of every preview server this script has started.
+# The HTTP server is detached (start_new_session=True) so it outlives the
+# Claude session that spawned it; without a registry, servers for *different*
+# output dirs accumulate and leak ports with no way to reap them all at once.
+REGISTRY = Path.home() / ".style-lab-servers.json"
+
+
+def _load_registry() -> dict:
+    try:
+        return json.loads(REGISTRY.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_registry(reg: dict) -> None:
+    try:
+        REGISTRY.write_text(json.dumps(reg, indent=2) + "\n", encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _register(output_dir: Path, pid: int, port: int) -> None:
+    reg = _load_registry()
+    reg[str(output_dir)] = {"pid": pid, "port": port}
+    _save_registry(reg)
+
+
+def _deregister(output_dir: Path) -> None:
+    reg = _load_registry()
+    if reg.pop(str(output_dir), None) is not None:
+        _save_registry(reg)
 
 
 def find_free_port(preferred: int | None = None) -> int:
@@ -85,6 +119,36 @@ def kill_existing(pid_file: Path) -> None:
     pid_file.unlink(missing_ok=True)
 
 
+def kill_all() -> int:
+    """Reap every preview server in the registry. Returns count killed."""
+    reg = _load_registry()
+    if not reg:
+        print("no registered preview servers")
+        return 0
+    killed = 0
+    for dir_str, info in list(reg.items()):
+        pid = info.get("pid")
+        if isinstance(pid, int) and pid_alive(pid):
+            try:
+                os.kill(pid, 15)
+                for _ in range(20):
+                    time.sleep(0.1)
+                    if not pid_alive(pid):
+                        break
+                else:
+                    os.kill(pid, 9)
+                killed += 1
+                print(f"  killed pid {pid} (port {info.get('port')}) — {dir_str}")
+            except OSError:
+                pass
+        # Also drop the per-dir pid file if it's still around.
+        pid_file = Path(dir_str) / ".preview-server.pid"
+        pid_file.unlink(missing_ok=True)
+    _save_registry({})
+    print(f"stopped {killed} preview server(s); registry cleared")
+    return killed
+
+
 def _run(cmd: list[str], label: str) -> bool:
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
@@ -96,7 +160,7 @@ def _run(cmd: list[str], label: str) -> bool:
     return True
 
 
-def regenerate_index(output_dir: Path, title: str) -> None:
+def regenerate_index(output_dir: Path, title: str, public_base: str = "") -> None:
     """Regenerate the per-batch comparison index for a directory of variants."""
     if not GENERATE_INDEX.exists():
         print(f"warn: {GENERATE_INDEX} missing, skipping index regeneration", file=sys.stderr)
@@ -104,10 +168,12 @@ def regenerate_index(output_dir: Path, title: str) -> None:
     cmd = ["python3", str(GENERATE_INDEX), str(output_dir)]
     if title:
         cmd += ["--title", title]
+    if public_base:
+        cmd += ["--public-base", public_base]
     _run(cmd, "generate_index.py")
 
 
-def regenerate_root_with_batches(output_dir: Path, title: str) -> None:
+def regenerate_root_with_batches(output_dir: Path, title: str, public_base: str = "") -> None:
     """For an output root with state.json: refresh every batch's index, then build the tabbed root."""
     state_path = output_dir / "state.json"
     if not state_path.exists():
@@ -127,6 +193,11 @@ def regenerate_root_with_batches(output_dir: Path, title: str) -> None:
             continue
         batch_title = f"{product_name} · batch {n}"
         cmd = ["python3", str(GENERATE_INDEX), str(batch_dir), "--title", batch_title]
+        if public_base:
+            # The root server serves output_dir, but a batch's variant `src`
+            # paths are relative to the batch dir — prefix with the batch dir
+            # so links resolve to http://host:port/<batch-dir>/<variant>/index.html.
+            cmd += ["--public-base", f"{public_base.rstrip('/')}/{batch_dir.name}"]
         _run(cmd, f"generate_index.py for batch-{n}")
     if GENERATE_ROOT_INDEX.exists():
         cmd = ["python3", str(GENERATE_ROOT_INDEX), str(output_dir)]
@@ -208,13 +279,29 @@ def start_server(output_dir: Path, port: int, pid_file: Path) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("output_dir", help="Directory containing variant subdirectories + index.html")
+    parser.add_argument(
+        "output_dir", nargs="?",
+        help="Directory containing variant subdirectories + index.html "
+             "(optional only when --kill-all is used)",
+    )
     parser.add_argument("--port", type=int, help="Preferred port (default: auto-pick from 8765+)")
     parser.add_argument("--host", help="Override the user@host shown in the ssh command")
     parser.add_argument("--title", default="", help="Title for the regenerated comparison index")
     parser.add_argument("--no-regen", action="store_true", help="Don't regenerate index.html before serving")
     parser.add_argument("--kill", action="store_true", help="Kill the server for this directory and exit")
+    parser.add_argument(
+        "--kill-all", action="store_true",
+        help="Kill EVERY preview server this script has ever started (across sessions/dirs) and exit",
+    )
     args = parser.parse_args()
+
+    if args.kill_all:
+        kill_all()
+        return 0
+
+    if not args.output_dir:
+        print("error: output_dir is required (unless --kill-all)", file=sys.stderr)
+        return 1
 
     output_dir = Path(args.output_dir).resolve()
     if not output_dir.is_dir():
@@ -225,27 +312,34 @@ def main() -> int:
 
     if args.kill:
         kill_existing(pid_file)
+        _deregister(output_dir)
         print(f"stopped any preview server for {output_dir}")
         return 0
 
     title = args.title or output_dir.name.replace("-", " ").title()
     has_state = (output_dir / "state.json").exists()
 
+    # Resolve the port BEFORE regeneration so generated links can be absolute
+    # (--public-base http://localhost:<port>). kill_existing must still run
+    # before we bind/probe the port, so this stays ahead of find_free_port.
+    kill_existing(pid_file)
+    port = find_free_port(args.port)
+    public_base = f"http://localhost:{port}"
+
     if not args.no_regen:
         if has_state:
             # Multi-batch root: refresh every batch's index AND build the tabbed root.
-            regenerate_root_with_batches(output_dir, title)
+            regenerate_root_with_batches(output_dir, title, public_base)
         else:
             # Single batch / flat dir: standard per-directory comparison page.
-            regenerate_index(output_dir, title)
+            regenerate_index(output_dir, title, public_base)
 
     if not (output_dir / "index.html").exists():
         print(f"error: no index.html in {output_dir} — did generate_index.py fail?", file=sys.stderr)
         return 1
 
-    kill_existing(pid_file)
-    port = find_free_port(args.port)
     pid = start_server(output_dir, port, pid_file)
+    _register(output_dir, pid, port)
     remote = is_remote_session(args.host or "")
 
     bar = "─" * 64

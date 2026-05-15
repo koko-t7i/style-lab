@@ -7,7 +7,7 @@ The comparison page is the deliverable. If it's awkward to use, the user can't m
 | Layout | When to use | When NOT to use | Real-user feedback |
 |---|---|---|---|
 | Grid (NN iframes side-by-side at 720px height) | First-look comparison of 3-5 variants of similar density | When variants are dense / text-heavy and need >800px height | Worked for early eval; got cluttered at 5+ variants |
-| Theatre (one large preview + thumbnail strip) | Single-focus deep dive after user has narrowed to ~2 finalists | When the user wants to compare; click-and-wait kills comparison | User: "使用体验不好，还不如一个列表页呢" — got rejected |
+| Theatre (one large preview + thumbnail strip) | Single-focus deep dive after user has narrowed to ~2 finalists | When the user wants to compare; click-and-wait kills comparison | User feedback (paraphrased): "bad experience — worse than just a list page" — got rejected |
 | Sidebar+Scroll (left TOC, right scrollable feed of full-height variants) ★ DEFAULT | Any time you have 3-7 variants of any density and need both list-overview + full-detail | Only on very small screens (<700px wide) — falls back to top dropdown | Currently in use, working |
 
 ## Why Sidebar+Scroll won
@@ -24,7 +24,7 @@ Keyboard nav (j/k or ↑/↓ to jump between variants) makes power users fast. T
 
 Each pitfall below is something we shipped, broke, and had to fix mid-session. Copy the corrected pattern; don't re-derive.
 
-- **Pitfall 1 — flex-derived iframe height collapses to 0.** Pattern that broke: parent had `display: flex; flex-direction: column`, iframe wrapper had `flex: 1; min-height: 100vh`, iframe inside had `height: 100%`. Result: iframe rendered at 0px and the user said "里面的内容看不到了 / 没展开". **Fix**: give the iframe container an explicit height like `calc(100vh - 110px)` with a `min-height: 600px` fallback. Don't rely on flex to derive iframe size — iframes don't participate in flex sizing the way divs do.
+- **Pitfall 1 — flex-derived iframe height collapses to 0.** Pattern that broke: parent had `display: flex; flex-direction: column`, iframe wrapper had `flex: 1; min-height: 100vh`, iframe inside had `height: 100%`. Result: iframe rendered at 0px and the user reported "the content inside is invisible / it didn't expand". **Fix**: give the iframe container an explicit height like `calc(100vh - 110px)` with a `min-height: 600px` fallback. Don't rely on flex to derive iframe size — iframes don't participate in flex sizing the way divs do.
 
 - **Pitfall 2 — scroll-snap locks at unexpected offsets.** Pattern that broke: `scroll-snap-type: y proximity` on the scrolling container with each variant section as `min-height: 100vh; scroll-snap-align: start`. Result: scrolling between variants felt sticky and could lock the viewport mid-variant, giving a "content cut off" appearance. **Fix**: don't use scroll-snap for landing-page comparison. Plain scroll plus `scroll-margin-top: 80px` on each section (so click-to-jump from sidebar lands below any sticky header) is enough.
 
