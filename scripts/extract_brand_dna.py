@@ -38,7 +38,7 @@ Schema (abbreviated):
     }
 
 Run example:
-    ./extract_brand_dna.py https://aurpay.net/ --output /tmp/aurpay-dna.json
+    ./extract_brand_dna.py https://stripe.com/ --output /tmp/stripe-dna.json
 """
 import argparse
 import json

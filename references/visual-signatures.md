@@ -17,13 +17,6 @@ and use the resulting JSON's `summary` field as your starting point.
 
 ---
 
-### Aurpay
-- **Palette**: brand gradient `#5B7FFF → #A78BFA` at 135° (blue → purple, primary identity), `bg #FFFFFF`, ink `#121437` (purple-tinted, NOT pure black), muted `#4F507D` (purple-grey).
-- **Type**: Inter (sans, all weights). JetBrains Mono for metric numerals and inline code only.
-- **Signature visual move**: the blue→purple gradient lives on CTAs, on the literal letters of the wordmark (text-clipped), and as a halo behind the dashboard mock — three placements, always those three.
-- **Mood**: confident fintech-Web3, light-native, gradient-led identity that crosses color families instead of staying monochromatic-blue.
-- **Reference URL**: https://aurpay.net/
-
 ### Stripe
 - **Palette**: single saturated indigo-blue `#635BFF` primary, ink `#0A2540`, paper `#FFFFFF`, signature mesh gradient (blue → pink → purple) on big marketing hero backgrounds.
 - **Type**: Söhne (display + body) — Inter is the close-enough open-source substitute. Generous tracking on display.
@@ -91,7 +84,7 @@ and use the resulting JSON's `summary` field as your starting point.
 
 ## How to use
 
-1. **Mode C (brand-tracking) start.** The user names a brand they want to look like ("make it look like Stripe", "Aurpay-style", etc.).
+1. **Mode C (brand-tracking) start.** The user names a brand they want to look like ("make it look like Stripe", "Linear-style", etc.).
 2. **Check this catalog first.** If the brand name appears above, copy the DNA into your working notes and skip step 3.
 3. **Fall back to live extraction.** If the brand is not listed, run:
    ```bash

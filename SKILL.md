@@ -331,7 +331,7 @@ The workflow mirrors style exploration but holds the style constant:
 - `references/iteration-modes.md` — how to handle "more, but different" / "go deeper on #N" / "make it like X" / "再换种排版" iteration requests, plus per-style variation axes and the Mode D layout flow (read this before step 6.5 or §7.5)
 - `references/layout-catalog.md` — named page layouts (single-column long scroll, bento 9-tile, sidebar workspace, tab-based, card waterfall, hero+pricing) with skeletons, grid recipes, and content requirements. Read this before §7.5 (Mode D layout exploration).
 - `references/design-md-spec.md` — the 11-section DESIGN.md format spec (getdesign.md / Google-Stitch extended canonical) + how to fill in each section well (read this before doing step 7)
-- `references/visual-signatures.md` — pre-catalogued brand DNA (palette + gradient + typeface + signature visual move) for ~10 commonly-named brands (Stripe / Linear / Vercel / Coinbase / Datadog / Notion / Apple / Arc / Anthropic / Aurpay). Check this first when the user names a brand, before running brand-DNA extraction.
+- `references/visual-signatures.md` — pre-catalogued brand DNA (palette + gradient + typeface + signature visual move) for ~10 commonly-named brands (Stripe / Linear / Vercel / Coinbase / Datadog / Notion / Apple / Arc / Anthropic). Check this first when the user names a brand, before running brand-DNA extraction.
 - `references/comparison-page-tradeoffs.md` — why the comparison index uses sidebar+scroll layout, what other layouts were tried and why they failed, and known CSS pitfalls (iframe height collapse, scroll-snap traps, lazy-load flicker). Read before changing the comparison index template.
 
 **Scripts (called explicitly)**

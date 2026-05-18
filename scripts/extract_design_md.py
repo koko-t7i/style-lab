@@ -245,7 +245,7 @@ def _format_gradient_def(g: dict) -> str:
     The brand-DNA parser canonicalizes to comma-separated stops without
     explicit positions; for the DESIGN.md YAML we expand back to the
     `<color> <pos%>` form because that's what the manually-curated
-    Aurpay reference DESIGN.md uses.
+    reference DESIGN.md uses.
     """
     stops = g["stops"]
     if not stops:
