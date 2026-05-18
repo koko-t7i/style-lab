@@ -1,6 +1,6 @@
 {
   "name": "style-lab",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "description": "Generate distinct visual design directions as runnable single-page HTML mockups.",
   "author": {
     "name": "style-lab contributors"
