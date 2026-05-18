@@ -24,10 +24,13 @@ Resolve it once at the start (it's the parent of the `scripts/` you're about
 to call) and substitute the real absolute path into every command; don't pass
 the literal string `<skill-path>`.
 
-`<ui-ux-pro-max-path>` is the install directory of the optional `ui-ux-pro-max`
-skill, only needed in step 2 and only if that skill is installed. If you can't
-locate it, skip straight to the `references/style-catalog.md` fallback — don't
-block on it.
+`<ui-ux-pro-max-path>` is the install directory of the `ui-ux-pro-max`
+skill, only needed in step 2. If you can't locate it, **don't silently fall
+back** — tell the user it isn't installed and recommend installing it (it's
+what gives you the 80+ style library with palettes, AI prompt keywords, and
+CSS hints; without it the style range is much narrower). Ask whether they want
+to install it now or proceed with the smaller built-in catalog. Only fall back
+to `references/style-catalog.md` if they decline or say go ahead anyway.
 
 ### 1. Gather just enough about the product
 
@@ -38,6 +41,15 @@ Read what the user gave you. If they hand you a one-pager or PRD, that is enough
 - What is the one feeling you want a visitor to walk away with? (trust / excitement / calm / awe / "this is serious" / "this is fun")
 
 Do not interview them. Three answers max.
+
+**A pre-existing `DESIGN.md` is NOT a style-lab input by default.** Some projects already have a `DESIGN.md` at the repo root (from a prior run, another tool, or a previous direction). style-lab exists to explore *fresh* directions, and silently anchoring variants to an existing `DESIGN.md` defeats the purpose (the user may be trying to move *away* from it).
+
+**If a `DESIGN.md` exists, confirm with the user up front before doing anything else** — ask one explicit question: should this run reference the existing `DESIGN.md` (stay on the current brand) or ignore it and explore fresh directions? Do not proceed to step 2 until they answer.
+
+- If they say **reference it** (or had already asked explicitly — "基于现有 DESIGN.md", "保持现在的品牌", "iterate on our DESIGN.md", "keep the current brand") → read it and let it anchor the style picks.
+- If they say **ignore it** → do not read it at all; it must not influence step 2's style picks.
+
+If no `DESIGN.md` exists, skip this confirmation entirely.
 
 ### 2. Pick 3–5 distinct styles
 
@@ -51,13 +63,13 @@ A good set covers the design space. For example, for a dev-tool SaaS you might p
 - optionally one **dark / serious** option (Dark Mode OLED, HUD/Sci-Fi)
 - optionally one **wildcard** that probably won't win but is informative (Y2K, Memphis, E-Ink)
 
-For getting style metadata (color palettes, AI prompt keywords, CSS hints, do-not-use-for warnings), use the `ui-ux-pro-max` skill if it is installed. It has 80+ styles in a CSV that you can search:
+For getting style metadata (color palettes, AI prompt keywords, CSS hints, do-not-use-for warnings), use the `ui-ux-pro-max` skill — it's the primary source, with 80+ styles in a CSV that you can search:
 
 ```bash
 python3 <ui-ux-pro-max-path>/scripts/search.py "<style name>" --domain style -n 1
 ```
 
-If `ui-ux-pro-max` is not available, fall back to `references/style-catalog.md` in this skill — it has a curated short list with enough detail to render each style faithfully.
+If `ui-ux-pro-max` is not available, **stop and ask the user before falling back** — tell them it isn't installed, that it's what unlocks the full 80+ style library, and recommend they install it. Only use the `references/style-catalog.md` fallback (a curated short list, still enough detail to render each style faithfully) if they decline or explicitly say to proceed without it.
 
 For mapping product types → recommended style sets, see `references/product-style-mapping.md`.
 
@@ -314,7 +326,7 @@ The workflow mirrors style exploration but holds the style constant:
 ## Files in this skill
 
 **References (read on demand)**
-- `references/style-catalog.md` — fallback style list with enough metadata to render each style if ui-ux-pro-max is not installed
+- `references/style-catalog.md` — fallback style list with enough metadata to render each style; only used after the user is told ui-ux-pro-max is missing and chooses to proceed without it (see step 2)
 - `references/product-style-mapping.md` — common product types → recommended style sets, for picking quickly
 - `references/iteration-modes.md` — how to handle "more, but different" / "go deeper on #N" / "make it like X" / "再换种排版" iteration requests, plus per-style variation axes and the Mode D layout flow (read this before step 6.5 or §7.5)
 - `references/layout-catalog.md` — named page layouts (single-column long scroll, bento 9-tile, sidebar workspace, tab-based, card waterfall, hero+pricing) with skeletons, grid recipes, and content requirements. Read this before §7.5 (Mode D layout exploration).

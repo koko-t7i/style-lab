@@ -1,5 +1,7 @@
 # style-lab
 
+English | [简体中文](./README.zh-CN.md)
+
 A Claude Code skill that turns a product description into 3–5 self-contained single-page HTML mockups in **distinctly different** visual styles, plus one comparison page to flip through them in seconds.
 
 Picking a visual direction early is high-leverage but slow — designers usually mock up 2–3 directions, the founder reacts, they iterate. `style-lab` compresses that loop: hand it a one-pager or PRD, get back real HTML pages each committed to a different visual language, side-by-side. Click through, point at the one that resonates, you have a direction.
@@ -20,12 +22,12 @@ Or add it to a marketplace and install via `/plugin marketplace` — `.claude-pl
 
 Just ask Claude Code for visual options in a session where the plugin is installed. The skill auto-triggers on phrases like:
 
-- *"看看这个产品适合什么风格"* / *"design exploration"* / *"批量出几版设计稿"*
+- *"see what styles fit this product"* / *"design exploration"* / *"generate a few design variants"*
 - *"prototype a few looks"* / *"moodboard"* / *"I'm not sure what direction to take"*
-- *"做成 Stripe / Linear / Aurpay 这样"* — extracts brand DNA (colors, gradients, fonts) from the reference URL(s) and applies it to every variant
+- *"make it like Stripe / Linear / Aurpay"* — extracts brand DNA (colors, gradients, fonts) from the reference URL(s) and applies it to every variant
 - Or just paste a PRD / product description and ask for visual ideas
 
-You don't need to type `/style-lab` explicitly.
+You don't need to type `/style-lab` explicitly. The skill also triggers on the equivalent Chinese phrases — see the [中文版](./README.zh-CN.md).
 
 ## Iteration
 
@@ -33,10 +35,10 @@ After the first batch:
 
 | You say | Mode | What happens |
 |---|---|---|
-| *"再来几个不一样的"* / *"more, but different"* | Fresh-different | A new batch of N styles, excluding everything shown before |
-| *"02 这个方向再多看几版"* / *"go deeper on #N"* | Refinement | N variations of the picked style, varying along style-specific axes (palette / type / density / hero device / tone) |
-| *"做成 [Linear / Stripe / Aurpay] 这样"* + reference URL | Reference-driven | Extracts brand DNA from the URL, generates variants that all live inside that DNA but vary along family-internal sub-axes |
-| *"再换几种排版"* / *"different layouts under this style"* | Layout exploration | After a style is locked, holds it constant and varies the page layout/composition (single-column, bento, sidebar-workspace, pricing comparison) |
+| *"more, but different"* | Fresh-different | A new batch of N styles, excluding everything shown before |
+| *"go deeper on #N"* | Refinement | N variations of the picked style, varying along style-specific axes (palette / type / density / hero device / tone) |
+| *"make it like [Linear / Stripe / Aurpay]"* + reference URL | Reference-driven | Extracts brand DNA from the URL, generates variants that all live inside that DNA but vary along family-internal sub-axes |
+| *"different layouts under this style"* | Layout exploration | After a style is locked, holds it constant and varies the page layout/composition (single-column, bento, sidebar-workspace, pricing comparison) |
 
 State lives in `<output-dir>/state.json` and survives across sessions. Picked variants are tracked there too and surface as `★ Picked` badges in the comparison page on the next iteration.
 

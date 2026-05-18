@@ -206,7 +206,6 @@ def render_section(variant_dir: Path, output_dir: Path, idx: int, picked: bool,
       <div class="variant-frame">
         {iframe}
       </div>
-      <div class="variant-notes"><textarea class="note-input" data-idx="{idx}" rows="2" placeholder="Your notes on this one (private to you) …"></textarea></div>
     </section>"""
 
 
@@ -266,7 +265,6 @@ def render_app_body(variants: list[Path], output_dir: Path, product_title: str,
       <div class="keyhint">
         <kbd>↑</kbd> <kbd>↓</kbd> or <kbd>1</kbd>–<kbd>{min(n, 9)}</kbd>
       </div>
-      <button id="copy-feedback" type="button">Copy all feedback</button>
     </div>
   </aside>
   <main id="main">

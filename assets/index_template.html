@@ -407,56 +407,6 @@
   body.viewport-tablet .variant-frame iframe { width: 768px; max-width: 100%; }
   body.viewport-mobile .variant-frame iframe { width: 390px; max-width: 100%; }
 
-  /* per-variant scratchpad note */
-  .variant-notes {
-    padding: 14px 4px 0;
-  }
-
-  .note-input {
-    display: block;
-    width: 100%;
-    font-family: inherit;
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--text);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 9px 11px;
-    resize: vertical;
-    min-height: 52px;
-    transition: border-color 150ms;
-  }
-
-  .note-input::placeholder { color: var(--text-faint); }
-
-  .note-input:focus {
-    outline: none;
-    border-color: var(--border-strong);
-  }
-
-  /* copy-all-feedback button in the sidebar .controls block */
-  #copy-feedback {
-    font-family: inherit;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    color: var(--pick);
-    background: var(--pick-soft);
-    border: 1px solid var(--pick);
-    border-radius: 7px;
-    padding: 8px 10px;
-    cursor: pointer;
-    transition: all 150ms;
-  }
-
-  #copy-feedback:hover {
-    color: var(--surface);
-    background: var(--pick);
-  }
-
-  #copy-feedback:active { transform: translateY(1px); }
-
   /* toast */
   #toast {
     position: fixed;
@@ -484,52 +434,6 @@
     transform: translateX(-50%) translateY(0);
   }
 
-  /* onboarding hint bar — slim overlay pinned to top of main column */
-  #hint-bar {
-    position: fixed;
-    top: 0;
-    left: var(--sidebar-w);
-    right: 0;
-    z-index: 900;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--pick-soft);
-    border-bottom: 1px solid var(--border);
-    color: var(--text-dim);
-    font-size: 11px;
-    line-height: 1.4;
-    padding: 7px 16px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  #hint-bar .hint-text {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  #hint-dismiss {
-    flex-shrink: 0;
-    font-family: inherit;
-    font-size: 14px;
-    line-height: 1;
-    color: var(--text-dim);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 2px 6px;
-    border-radius: 4px;
-    transition: all 150ms;
-  }
-
-  #hint-dismiss:hover { color: var(--text); background: rgba(0,0,0,0.05); }
-
-  /* when hint is showing, push the main scroll content down so the
-     first variant is never permanently covered */
-  body.hint-on main { padding-top: 32px; }
 
   .empty-state {
     grid-column: 1 / -1;
@@ -557,8 +461,6 @@
     .toc-item.active { border-color: var(--accent); border-left-width: 1px; }
     .controls { display: none; }
     .variant-section { padding: 18px; }
-    /* sidebar stacks on top → hint bar spans full width */
-    #hint-bar { left: 0; }
     .variant-header { flex-direction: column; align-items: flex-start; gap: 8px; }
     .variant-header .variant-actions { flex-wrap: wrap; }
     .variant-header .variant-intent { flex-basis: auto; white-space: normal; }
@@ -566,10 +468,6 @@
 </style>
 </head>
 <body>
-<div id="hint-bar" hidden>
-  <span class="hint-text">Scroll or press 1–N to flip through · on a variant, click "✓ Pick this" to copy a selection phrase and paste it back in chat to lock it in · jot reactions in the notes below and grab them all with "Copy all feedback"</span>
-  <button id="hint-dismiss" type="button" aria-label="dismiss">×</button>
-</div>
 <div class="app">
   __APP_BODY__
 </div>
@@ -610,21 +508,6 @@
     return ok;
   }
 
-  // --- onboarding hint bar ---
-  (function () {
-    const bar = document.getElementById('hint-bar');
-    if (!bar) return;
-    if (localStorage.getItem('style-lab:hint-dismissed') === '1') return;
-    bar.hidden = false;
-    document.body.classList.add('hint-on');
-    const dismiss = () => {
-      try { localStorage.setItem('style-lab:hint-dismissed', '1'); } catch (e) {}
-      bar.remove();
-      document.body.classList.remove('hint-on');
-    };
-    const btn = document.getElementById('hint-dismiss');
-    if (btn) btn.addEventListener('click', dismiss);
-  })();
 
   if (variants.length) {
     const tocItems = document.querySelectorAll('.toc-item');
@@ -692,53 +575,6 @@
       });
     });
 
-    // notes persistence (localStorage, debounced) + restore
-    const NOTES_KEY = 'style-lab:notes:' + location.pathname;
-    const noteInputs = document.querySelectorAll('.note-input');
-    let savedNotes = {};
-    try { savedNotes = JSON.parse(localStorage.getItem(NOTES_KEY) || '{}') || {}; } catch (e) { savedNotes = {}; }
-    noteInputs.forEach(ta => {
-      const idx = ta.dataset.idx;
-      if (Object.prototype.hasOwnProperty.call(savedNotes, idx)) ta.value = savedNotes[idx];
-    });
-    let saveTimer = null;
-    function persistNotes() {
-      const map = {};
-      noteInputs.forEach(ta => {
-        const v = ta.value;
-        if (v && v.trim()) map[ta.dataset.idx] = v;
-      });
-      try { localStorage.setItem(NOTES_KEY, JSON.stringify(map)); } catch (e) {}
-    }
-    noteInputs.forEach(ta => {
-      ta.addEventListener('input', () => {
-        if (saveTimer) clearTimeout(saveTimer);
-        saveTimer = setTimeout(persistNotes, 400);
-      });
-    });
-
-    // copy-all-feedback
-    const copyFeedbackBtn = document.getElementById('copy-feedback');
-    if (copyFeedbackBtn) {
-      copyFeedbackBtn.addEventListener('click', () => {
-        const byIdx = {};
-        variants.forEach(v => { byIdx[v.idx] = v; });
-        const lines = [];
-        noteInputs.forEach(ta => {
-          const note = (ta.value || '').trim();
-          if (!note) return;
-          const v = byIdx[parseInt(ta.dataset.idx, 10)];
-          const num = v ? v.num : ta.dataset.idx;
-          const name = v ? v.name : '';
-          lines.push('#' + num + ' ' + name + ': ' + note);
-        });
-        if (!lines.length) { showToast('No notes written yet'); return; }
-        const header = (document.title.split(' — ')[0] || 'style-lab') + ' — design feedback';
-        const block = header + '\n\n' + lines.join('\n');
-        Promise.resolve(copyText(block))
-          .then(() => showToast('All feedback copied (' + lines.length + ' item' + (lines.length === 1 ? '' : 's') + ')'));
-      });
-    }
   }
 </script>
 </body>
