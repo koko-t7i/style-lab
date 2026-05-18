@@ -35,7 +35,7 @@ After the first batch:
 | *"make it like [Linear / Stripe / Vercel]"* + URL | Reference-driven | Variants stay inside the brand DNA, vary on family-internal axes |
 | *"different layouts under this style"* | Layout exploration | Style held constant, page layout varies (single-column, bento, sidebar, pricing) |
 
-State lives in `<output-dir>/state.json` and survives across sessions; picks resurface as `★ Picked` badges. Each comparison-page card has **✓ Pick this**, **🔗 Copy link**, and a per-variant **notes box** with **Copy all feedback**. On a winner, run the DESIGN.md extractor for a Google-Stitch spec downstream coding agents can read.
+State lives in `<output-dir>/state.json` and survives across sessions; picks resurface as `★ Picked` badges. Each comparison-page card has **✓ Pick this** and **🔗 Copy link**. On a winner, run the DESIGN.md extractor for a Google-Stitch spec downstream coding agents can read.
 
 ## Output layout
 

@@ -221,7 +221,7 @@ For a single directory, re-run `serve_preview.py <that-dir> --kill` instead.
 
 ### 6. Hand off to the user
 
-The script's output already tells the user exactly what to paste and what to open (and only prints the SSH tunnel block when it detects an SSH session). The comparison page is the deliverable and it is self-describing: every per-variant intent blurb is already rendered on its card (step 4's `batches[N].blurbs[i]`), and the **✓ Pick this** / **🔗 Copy link** / per-variant notes / sidebar **Copy all feedback** controls are visible and self-explanatory. So **keep the chat reply minimal** — do not narrate the UI or repeat the per-variant blurbs the user can already read on screen. Just:
+The script's output already tells the user exactly what to paste and what to open (and only prints the SSH tunnel block when it detects an SSH session). The comparison page is the deliverable and it is self-describing: every per-variant intent blurb is already rendered on its card (step 4's `batches[N].blurbs[i]`), and the **✓ Pick this** / **🔗 Copy link** controls are visible and self-explanatory. So **keep the chat reply minimal** — do not narrate the UI or repeat the per-variant blurbs the user can already read on screen. Just:
 
 Use this **fixed structured template** (same labeled blocks every time — structure, not prose). Match the user's language. Omit the `Tunnel` line entirely on a local (non-SSH) session. Omit the `Note` line unless you genuinely have something not already on the cards:
 

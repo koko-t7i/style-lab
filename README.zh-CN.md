@@ -35,7 +35,7 @@
 | *"做成 [Linear / Stripe / Vercel] 这样"* + URL | 参考驱动 | 变体全落在品牌 DNA 内，沿家族内子轴变化 |
 | *"在这个风格下再换几种排版"* | 排版探索 | 风格不变，只变页面布局（单栏、便当格、侧栏、价格对比） |
 
-状态保存在 `<output-dir>/state.json`，跨会话保留；被选中的变体以 `★ Picked` 徽标重现。对比页每张卡片有 **✓ Pick this**、**🔗 Copy link**，以及按变体的**备注框**配 **Copy all feedback**。选定赢家后，运行 DESIGN.md 提取器输出 Google-Stitch 规范，供下游编码代理读取。
+状态保存在 `<output-dir>/state.json`，跨会话保留；被选中的变体以 `★ Picked` 徽标重现。对比页每张卡片有 **✓ Pick this** 和 **🔗 Copy link**。选定赢家后，运行 DESIGN.md 提取器输出 Google-Stitch 规范，供下游编码代理读取。
 
 ## 输出结构
 
