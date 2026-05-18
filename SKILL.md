@@ -67,13 +67,13 @@ For mapping product types → recommended style sets, see `references/product-st
 
 ### 3. Decide the output directory and shared content
 
-Pick an output directory — default to `./style-lab-output/<product-slug>/` (relative to the user's CWD).
+Pick an output directory — default to `./.style-lab/<product-slug>/` (relative to the user's CWD). The leading dot keeps the exploration tree out of `ls` and most file browsers so it doesn't visually clutter the project; it is still git-tracked unless ignored, which is what the next step handles.
 
 **If `<output-dir>/state.json` already exists, STOP and jump to step 6.5** — this is an iteration, not a first run, and the iteration logic decides where variants go.
 
 For first runs, create a `batch-1/` subdirectory inside the output directory. Each variant goes in `batch-1/01-style-slug/`, `batch-1/02-style-slug/`, etc. Also create `<output-dir>/state.json` recording this first batch (see `references/iteration-modes.md` for the schema).
 
-**Drop a `.gitignore` containing a single `*` at `style-lab-output/.gitignore` if it doesn't already exist.** The HTML mockups, comparison index, preview-server pid file, and `state.json` are all throwaway exploration artifacts — only `DESIGN.md` (which lands at the repo root in step 7) is meant to be committed. Ignoring the whole `style-lab-output/` tree keeps the repo clean.
+**Drop a `.gitignore` containing a single `*` at `.style-lab/.gitignore` if it doesn't already exist.** The leading dot only hides the directory from `ls` — git still tracks it — so this `.gitignore` is what actually keeps it out of the repo. The HTML mockups, comparison index, preview-server pid file, and `state.json` are all throwaway exploration artifacts — only `DESIGN.md` (which lands at the repo root in step 7) is meant to be committed. Ignoring the whole `.style-lab/` tree keeps the repo clean.
 
 Before generating variants, write down two pieces of **shared content** so every variant tells the same story with different visuals:
 
@@ -111,7 +111,7 @@ Repeating across 5 subagent prompts means one typo breaks the comparison.
 
 ✓ Right (single source of truth):
 ```
-Locked copy: read /home/dev-koko/style-lab-output/<product>/state.json,
+Locked copy: read /home/dev-koko/.style-lab/<product>/state.json,
 use the `shared_copy` block verbatim (headline, subhead, features, cta_primary,
 cta_secondary, footer). Do NOT paraphrase any text from that block.
 ```
@@ -209,13 +209,24 @@ For a single directory, re-run `serve_preview.py <that-dir> --kill` instead.
 
 ### 6. Hand off to the user
 
-The script's output already tells the user exactly what to paste and what to open (and only prints the SSH tunnel block when it detects an SSH session). Don't re-explain it — the user has eyes. Just:
+The script's output already tells the user exactly what to paste and what to open (and only prints the SSH tunnel block when it detects an SSH session). The comparison page is the deliverable and it is self-describing: every per-variant intent blurb is already rendered on its card (step 4's `batches[N].blurbs[i]`), and the **✓ Pick this** / **🔗 Copy link** / per-variant notes / sidebar **Copy all feedback** controls are visible and self-explanatory. So **keep the chat reply minimal** — do not narrate the UI or repeat the per-variant blurbs the user can already read on screen. Just:
 
-1. Re-paste the URL (and the SSH command, if one was printed) prominently in your reply — they're easy to miss in script output.
-2. Briefly (2–3 lines per variant) say what you were going for with each one and what kind of product/audience it's best for.
-3. Don't editorialize about which is "best" — that's exactly what the user is here to decide.
+Use this **fixed structured template** (same labeled blocks every time — structure, not prose). Match the user's language. Omit the `Tunnel` line entirely on a local (non-SSH) session. Omit the `Note` line unless you genuinely have something not already on the cards:
 
-Each comparison card now has **✓ Pick this** and **🔗 Copy link** buttons: the user clicks ✓ Pick this to copy a ready-made paste-back selection phrase (`Go with #N — NN Name`) and pastes it straight back into chat instead of retyping which one they want. Each card also has a **per-variant notes box** plus a sidebar **Copy all feedback** button — tell the user they can jot reactions per variant and copy the whole set back in one paste; that aggregated feedback is exactly what makes a follow-up Mode B refinement land instead of guessing.
+```
+**<N> variants ready**
+
+**Preview**
+- Tunnel: `ssh -N -L <port>:localhost:<port> <user@host>`
+- Open:   `http://localhost:<port>/index.html`
+
+**Note:** <one line, only if true for THIS batch and not already on screen>
+```
+
+Rules for the template:
+1. The `Preview` block is mandatory and is usually the *whole* reply — re-paste the URL/SSH verbatim from the script output (easy to miss there).
+2. `Note` is optional and at most one line. No per-variant blurbs (they're on the cards), no UI narration, no editorializing about which is "best" — that's exactly what the user is here to decide.
+3. Don't add sections beyond these. If there's nothing for `Note`, the reply is just the title + `Preview` block.
 
 **Non-tunnel handoff (no server, no SSH).** For users who can't or won't run the `ssh -N -L` tunnel (locked-down corp laptop, just wants a file to open), generate the single-file bundle instead:
 
@@ -262,15 +273,15 @@ python3 <skill-path>/scripts/extract_design_md.py <output-dir>/<NN-winning-style
 ```
 
 This:
-1. Scans the winning variant's `index.html` and extracts **solid colors AND gradients** (linear + radial), typography, spacing, border-radius into the YAML front-matter of a new `DESIGN.md`. By default the file is written to the **repo root** (via `git rev-parse --show-toplevel` on the variant directory) — that's where downstream coding agents look first, and where it's meant to be committed. If the variant isn't inside a git repo the script falls back to writing it next to the variant folders. Pass `--output <path>` to override. Solid hex values that are also gradient stops are renamed to indicate the relationship (`brand-start: "#5B7FFF"  # gradients.brand stop 0`) instead of appearing as standalone `accent` / `highlight` tokens — this makes the gradient identity obvious to downstream agents reading the file.
-2. Generates the 9-section markdown skeleton with `<!-- LLM-FILL: ... -->` placeholders.
+1. Scans the winning variant's `index.html` and extracts **solid colors AND gradients** (linear + radial), typography, spacing, border-radius into the YAML front-matter of a new `DESIGN.md`, shaped to the **getdesign.md / Google-Stitch extended canonical** (layered color tokens, a full named typography hierarchy with `lineHeight`/`letterSpacing`, a named spacing scale, `{brace}` token refs, and a `components:` map) so the output matches the published reference corpus and is read identically by Stitch / Cursor / Claude Code. By default the file is written to the **repo root** (via `git rev-parse --show-toplevel` on the variant directory) — that's where downstream coding agents look first, and where it's meant to be committed. If the variant isn't inside a git repo the script falls back to writing it next to the variant folders. Pass `--output <path>` to override. Solid hex values that are also gradient stops are renamed to indicate the relationship (`brand-start: "#5B7FFF"  # gradients.brand stop 0`) instead of appearing as standalone `accent` / `highlight` tokens — this makes the gradient identity obvious to downstream agents reading the file.
+2. Generates the 11-section markdown skeleton (Overview, Colors, Typography, Layout, Elevation & Depth, Shapes, Components, Do's and Don'ts, Responsive Behavior, Iteration Guide, Known Gaps) with `<!-- LLM-FILL: ... -->` placeholders.
 
 Then **you** (the agent reading this skill) must:
 
 3. **Read the variant's `index.html`** to see what was actually built — colors used, components designed, layout choices made. Ground every prose section in something a reader could verify by looking at the page.
-4. **Read `references/design-md-spec.md`** for what each of the 9 sections should contain and the specificity level required.
+4. **Read `references/design-md-spec.md`** for what each of the 11 sections (and their sub-headings) should contain and the specificity level required.
 5. **Replace every `<!-- LLM-FILL: ... -->` placeholder** with real, opinionated, variant-specific prose. Don't write generic design-system copy. Don't soften opinionated styles (Brutalism's DESIGN.md should *forbid* gradients, not "discourage" them).
-6. **Review the auto-extracted color token names.** The script guesses based on luminance/saturation — `paper` and `ink` are usually right but `surface`/`muted`/`border` may be miscategorized. Rename to match how each color is actually used on the page.
+6. **Review the auto-extracted tokens against the canonical vocabulary.** The color classifier guesses from luminance/saturation — rename to the canonical layered vocabulary (`primary`/`primary-active`/`canvas`/`surface-card`/`surface-dark`/`ink`/`body`/`muted`/`on-primary`/`on-dark`/`success`…) based on how each color is actually used, and keep every `components:` `{colors.x}` ref pointing at a token that exists. Also sanity-check the seeded `typography` sizes/weights and the `spacing`/`rounded` values against what the variant actually uses — the hierarchy is emitted complete but its numbers are defaults to tune.
 7. **Optionally validate** with `npx @google/design.md lint <path>/DESIGN.md` (catches broken token references and WCAG contrast issues). Fix anything it flags.
 8. Tell the user the file is ready, where it landed (the script prints the destination — usually the repo root), and what they do with it: commit it, point Cursor / Claude Code at it, and every future UI prompt will respect the brand.
 
@@ -307,7 +318,7 @@ The workflow mirrors style exploration but holds the style constant:
 - `references/product-style-mapping.md` — common product types → recommended style sets, for picking quickly
 - `references/iteration-modes.md` — how to handle "more, but different" / "go deeper on #N" / "make it like X" / "再换种排版" iteration requests, plus per-style variation axes and the Mode D layout flow (read this before step 6.5 or §7.5)
 - `references/layout-catalog.md` — named page layouts (single-column long scroll, bento 9-tile, sidebar workspace, tab-based, card waterfall, hero+pricing) with skeletons, grid recipes, and content requirements. Read this before §7.5 (Mode D layout exploration).
-- `references/design-md-spec.md` — the 9-section DESIGN.md format spec + how to fill in each section well (read this before doing step 7)
+- `references/design-md-spec.md` — the 11-section DESIGN.md format spec (getdesign.md / Google-Stitch extended canonical) + how to fill in each section well (read this before doing step 7)
 - `references/visual-signatures.md` — pre-catalogued brand DNA (palette + gradient + typeface + signature visual move) for ~10 commonly-named brands (Stripe / Linear / Vercel / Coinbase / Datadog / Notion / Apple / Arc / Anthropic / Aurpay). Check this first when the user names a brand, before running brand-DNA extraction.
 - `references/comparison-page-tradeoffs.md` — why the comparison index uses sidebar+scroll layout, what other layouts were tried and why they failed, and known CSS pitfalls (iframe height collapse, scroll-snap traps, lazy-load flicker). Read before changing the comparison index template.
 
@@ -318,7 +329,7 @@ The workflow mirrors style exploration but holds the style constant:
 - `scripts/extract_brand_dna.py` — fetches one or more reference URLs and extracts a structured brand DNA JSON (solids + gradients + fonts + CSS vars + a one-paragraph summary). Run BEFORE generating variants in Mode C (reference-driven). Filters out social-brand and Elementor theme-boilerplate noise. See step 2.
 - `scripts/validate_variant.py` — runs after each variant is generated to catch lorem ipsum, dropped headlines, broken HTML, or missing brand colors. Writes `validation.json` per variant; exits non-zero on failure for scripted gating. See step 4.
 - `scripts/init_iteration.py` — auto-migrates a flat first-batch output (no `batch-1/` wrapper, no state.json) into the canonical batch-N structure. Defaults to dry-run; pass `--commit` to apply. See step 6.5.
-- `scripts/extract_design_md.py` — after the user picks a winner, scans that variant's HTML and emits a DESIGN.md with extracted tokens (now including gradients, with stop-aware renaming) + 9-section skeleton. See step 7.
+- `scripts/extract_design_md.py` — after the user picks a winner, scans that variant's HTML and emits a DESIGN.md with extracted tokens (canonical layered colors + full typography hierarchy + named spacing + components map + gradients with stop-aware renaming) + 11-section skeleton. See step 7.
 
 **Assets (templates)**
 - `assets/index_template.html` — the per-batch comparison page template (sidebar TOC + scroll feed)

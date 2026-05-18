@@ -7,8 +7,9 @@ Usage:
 
 Run this AFTER the user has picked a winning variant. It scans that variant's
 index.html, programmatically extracts the design tokens (colors, typography,
-spacing, border-radius, etc.) into the YAML front-matter of DESIGN.md, and
-emits a 9-section markdown skeleton. The prose sections are seeded with
+rounded, spacing, components) into the YAML front-matter of DESIGN.md in the
+getdesign.md / Google-Stitch *extended* canonical shape, and emits the
+11-section markdown skeleton. The prose sections are seeded with
 <!-- LLM-FILL: ... --> placeholders that the calling agent should replace
 with real, variant-specific design rationale.
 
@@ -17,9 +18,11 @@ on the variant directory. If the variant isn't in a git repo, falls back to
 `<variant-dir>/../DESIGN.md` (sibling of the variant folder). Override with
 --output. Repo root is the right default because (a) DESIGN.md is the only
 thing meant to be committed, (b) downstream coding agents look there first,
-and (c) the rest of `style-lab-output/` should be gitignored.
+and (c) the rest of `.style-lab/` should be gitignored.
 
-Spec reference: https://github.com/google-labs-code/design.md
+Spec lineage: Google Stitch DESIGN.md format (stitch.withgoogle.com/docs/
+design-md/format/), extended-sections variant as used by getdesign.md /
+github.com/VoltAgent/awesome-design-md. See references/design-md-spec.md.
 Validate the result with:  npx @google/design.md lint <output>
 """
 import argparse
@@ -345,6 +348,74 @@ def _retag_solids_with_gradient_membership(
     return out
 
 
+# Canonical extended typography hierarchy (getdesign.md / Stitch). Each entry:
+# (token, family-role, fontSize, fontWeight, lineHeight, letterSpacing).
+# The extractor seeds families from the variant; sizes/weights are sensible
+# defaults the calling agent tunes against what the page actually uses.
+TYPO_SCALE = [
+    ("display-xl", "display", "56px", 700, "1.05", "-1px"),
+    ("display-lg", "display", "44px", 700, "1.1",  "-0.5px"),
+    ("display-md", "display", "32px", 700, "1.15", "-0.3px"),
+    ("title-lg",   "body",    "22px", 600, "1.3",  "0"),
+    ("title-md",   "body",    "18px", 600, "1.4",  "0"),
+    ("body-md",    "body",    "16px", 400, "1.6",  "0"),
+    ("body-sm",    "body",    "14px", 400, "1.55", "0"),
+    ("caption",    "body",    "13px", 500, "1.4",  "0"),
+    ("code",       "mono",    "14px", 400, "1.6",  "0"),
+    ("button",     "body",    "14px", 600, "1",    "0"),
+    ("nav-link",   "body",    "14px", 500, "1.4",  "0"),
+]
+# Inner family names use single quotes — the whole value is emitted inside a
+# double-quoted YAML scalar, so nested double quotes would break the YAML.
+DISPLAY_FALLBACK = "Georgia, 'Times New Roman', serif"
+BODY_FALLBACK = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+MONO_FALLBACK = "ui-monospace, 'SF Mono', Menlo, Consolas, monospace"
+
+# `spacing` and `rounded` are *designed* monotonic scales in the canonical
+# format, not raw observations. Zipping observed paddings/radii onto the named
+# scale produces non-monotonic, colliding garbage, so we always emit the
+# conventional scale (identical to the getdesign.md corpus) and surface the
+# observed values as a comment for the prose-fill agent to reconcile.
+SPACING_SCALE = [("xxs", "4px"), ("xs", "8px"), ("sm", "12px"), ("md", "16px"),
+                 ("lg", "24px"), ("xl", "32px"), ("xxl", "48px"), ("section", "96px")]
+ROUNDED_SCALE = [("xs", "4px"), ("sm", "6px"), ("md", "8px"), ("lg", "12px"), ("xl", "16px")]
+
+# Canonical component set, expressed against token names the color classifier
+# can actually emit (paper/ink/accent/surface/muted...). `_pick` falls back so
+# refs never dangle and `npx @google/design.md lint` stays green.
+COMPONENT_TEMPLATE = [
+    ("button-primary",   ["accent", "ink"],     ["paper", "on-primary"], "button",     "md"),
+    ("button-secondary", ["paper", "surface"],  ["ink", "accent"],       "button",     "md"),
+    ("feature-card",     ["surface", "paper"],  ["ink", "body"],         "title-md",   "lg"),
+    ("top-nav",          ["paper", "surface"],  ["ink", "body"],         "nav-link",   None),
+    ("text-input",       ["paper", "surface"],  ["ink", "body"],         "body-md",    "md"),
+    ("cta-band",         ["accent", "ink"],     ["paper", "on-primary"], "display-md", "lg"),
+    ("footer",           ["ink", "surface"],    ["paper", "muted"],      "body-sm",    None),
+]
+
+
+def _family(role: str, fonts: list[str]) -> str:
+    """Build a `Primary, fallback` family string for a typography role.
+
+    The primary face is quoted only if multi-word, and is dropped if it would
+    just duplicate the head of the fallback stack.
+    """
+    disp = fonts[0] if fonts else None
+    body = fonts[1] if len(fonts) > 1 else (fonts[0] if fonts else None)
+    mono = fonts[2] if len(fonts) > 2 else None
+    primary, fallback = (
+        (disp, DISPLAY_FALLBACK) if role == "display"
+        else (mono, MONO_FALLBACK) if role == "mono"
+        else (body, BODY_FALLBACK)
+    )
+    if not primary:
+        return fallback
+    if primary.lower() == fallback.split(",")[0].strip().strip("'\"").lower():
+        return fallback
+    quoted = f"'{primary}'" if " " in primary else primary
+    return f"{quoted}, {fallback}"
+
+
 def render_yaml(name: str, description: str, style_name: str,
                 colors: list[tuple[str, str]], fonts: list[str],
                 spacing: list[str], radii: list[str],
@@ -357,10 +428,12 @@ def render_yaml(name: str, description: str, style_name: str,
 
     gradients = gradients or []
 
+    color_tokens: list[str] = []
     if colors:
         retagged = _retag_solids_with_gradient_membership(colors, gradients)
         lines.append("colors:")
         for token, hex_v, comment in retagged:
+            color_tokens.append(token)
             if comment:
                 lines.append(f'  {token}: "{hex_v}"  # {comment}')
             else:
@@ -373,60 +446,120 @@ def render_yaml(name: str, description: str, style_name: str,
                 f'  {token}: "{_format_gradient_def(g)}"  # {_gradient_comment(g)}'
             )
 
-    if fonts:
-        lines.append("typography:")
-        lines.append(f'  display: {{ family: "{fonts[0]}", weight: 700 }}')
-        body_font = fonts[1] if len(fonts) > 1 else fonts[0]
-        lines.append(f'  body: {{ family: "{body_font}", weight: 400 }}')
-        if len(fonts) > 2:
-            lines.append(f'  mono: {{ family: "{fonts[2]}", weight: 400 }}')
+    # Typography: full named hierarchy (display-xl … nav-link) regardless of
+    # how many faces were extracted — downstream agents expect every token.
+    lines.append("typography:")
+    for token, role, size, weight, lh, ls in TYPO_SCALE:
+        fam = _family(role, fonts)
+        lines.append(
+            f'  {token}: {{ fontFamily: "{fam}", fontSize: {size}, '
+            f"fontWeight: {weight}, lineHeight: {lh}, letterSpacing: {ls} }}"
+        )
 
-    if spacing:
-        lines.append("spacing:")
-        for i, s in enumerate(spacing, start=1):
-            lines.append(f'  {i}: "{s}"')
+    # rounded: canonical monotonic scale + pill/full; observed radii noted for
+    # the agent to reconcile against what the variant actually uses.
+    obs_r = f"  # observed in variant: {', '.join(radii)}" if radii else ""
+    lines.append(f"rounded:{obs_r}")
+    for key, val in ROUNDED_SCALE:
+        lines.append(f'  {key}: "{val}"')
+    lines.append('  pill: "9999px"')
+    lines.append('  full: "9999px"')
 
-    if radii:
-        lines.append("rounded:")
-        keys = ["sm", "md", "lg", "xl", "full"]
-        for i, r in enumerate(radii[:5]):
-            lines.append(f'  {keys[i]}: "{r}"')
+    # spacing: canonical monotonic named scale; observed values noted.
+    obs_s = f"  # observed in variant: {', '.join(spacing)}" if spacing else ""
+    lines.append(f"spacing:{obs_s}")
+    for key, val in SPACING_SCALE:
+        lines.append(f'  {key}: "{val}"')
+
+    def _pick(prefs: list[str]) -> str:
+        for p in prefs:
+            if p in color_tokens:
+                return p
+        return color_tokens[0] if color_tokens else "ink"
+
+    lines.append("components:")
+    for comp, bg_prefs, fg_prefs, typo, rnd in COMPONENT_TEMPLATE:
+        lines.append(f"  {comp}:")
+        lines.append(f'    backgroundColor: "{{colors.{_pick(bg_prefs)}}}"')
+        lines.append(f'    textColor: "{{colors.{_pick(fg_prefs)}}}"')
+        lines.append(f'    typography: "{{typography.{typo}}}"')
+        if rnd:
+            lines.append(f'    rounded: "{{rounded.{rnd}}}"')
 
     lines.append("---")
     return "\n".join(lines)
 
 
+# The 11 canonical extended sections (getdesign.md / Stitch), in fixed order,
+# with the same sub-headings the reference corpus uses. Plain `## Title`
+# headings — no numeric prefix — matching the published files.
 SECTION_BODIES = [
     ("Overview",
      "{description}\n\nVisual direction: **{style_name}**.\n\n"
-     "<!-- LLM-FILL: 1-2 short paragraphs on what this design is meant to feel like, who it's for, and the tone of voice. Specific to *this* variant — don't write generic copy. -->"),
+     "<!-- LLM-FILL: 1-2 paragraphs on the surface/atmosphere story — what this design feels like, who it's for, the tone. Specific to *this* variant, never \"modern\"/\"clean\". -->\n\n"
+     "**Key Characteristics:**\n\n"
+     "<!-- LLM-FILL: 5-8 bullets, each citing a `{{token}}`: the defining color, the display face + its tracking, the signature visual move, the radius scale, the section rhythm. -->"),
     ("Colors",
-     "Token reference: see `colors` and `gradients` in front-matter.\n\n"
-     "<!-- LLM-FILL: Walk through the solids vs the gradients — which colors are flat tokens for text/borders, which are gradient identity moments. Mention which gradient is THE brand identity and where it must appear (CTA / wordmark / dashboard halo / etc.). Also: contrast strategy, palette restrictions, which solo solids are sanctioned and which only exist inside a gradient. -->"),
+     "### Brand & Accent\n\n"
+     "<!-- LLM-FILL: One bullet per brand/accent color: bold name, `{{colors.x}}` ref, hex, and exactly when to use it (CTA bg / wordmark / callout). -->\n\n"
+     "### Surface\n\n"
+     "<!-- LLM-FILL: canvas / soft / card / dark surface tokens — what each floor is for and the band-alternation rhythm. -->\n\n"
+     "### Text\n\n"
+     "<!-- LLM-FILL: ink / body / muted / on-primary / on-dark — contrast strategy and the on-color text rules. -->\n\n"
+     "### Semantic\n\n"
+     "<!-- LLM-FILL: success / warning / error if present; say if they're absent on marketing surfaces. -->"),
     ("Typography",
-     "Token reference: see `typography` in front-matter.\n\n"
-     "<!-- LLM-FILL: Display vs body face, weight & letter-spacing conventions, hierarchy rules (h1 size, line-height conventions, paragraph rhythm). Note any special treatments (drop caps, all-caps tracking, monospace use). -->"),
+     "### Font Family\n\n"
+     "<!-- LLM-FILL: display vs body face and the editorial logic of the split; the fallback stacks. -->\n\n"
+     "### Hierarchy\n\n"
+     "<!-- LLM-FILL: a table — Token | Size | Weight | Line Height | Letter Spacing | Use — mirroring the `typography` front-matter, with the real on-page usage of each token. -->\n\n"
+     "### Principles\n\n"
+     "<!-- LLM-FILL: weight & tracking rules, what is non-negotiable (the serif/sans split, negative display tracking, etc.). -->\n\n"
+     "### Note on Font Substitutes\n\n"
+     "<!-- LLM-FILL: closest open-source substitutes for any licensed/proprietary face; skip if all faces are already open Google Fonts. -->"),
     ("Layout",
-     "<!-- LLM-FILL: How content is structured — grid behavior (number of cols, gutters), max content widths, vertical rhythm, alignment philosophy (left/centered/asymmetric), density (spacious vs dense). Reference spacing tokens. -->"),
+     "### Spacing System\n\n"
+     "<!-- LLM-FILL: base unit + the named `{{spacing.*}}` tokens, section padding, card padding, CTA-band padding. -->\n\n"
+     "### Grid & Container\n\n"
+     "<!-- LLM-FILL: max content width, the column grid per content type, responsive column counts (desktop/tablet/mobile). -->\n\n"
+     "### Whitespace Philosophy\n\n"
+     "<!-- LLM-FILL: the pacing rationale — why this much air, what the rhythm communicates. -->"),
     ("Elevation & Depth",
-     "<!-- LLM-FILL: Shadow philosophy — flat? layered? hard offset blocks? glass with backdrop-filter? List specific shadow values used and when each applies. State explicitly if depth is avoided. -->"),
+     "<!-- LLM-FILL: a Level | Treatment | Use table (flat / hairline / soft / lifted) with concrete shadow/border values and when each applies. State explicitly if depth is rejected. -->\n\n"
+     "### Decorative Depth\n\n"
+     "<!-- LLM-FILL: glows, blurs, layered surfaces, hard offset blocks — or \"none; the system is strictly flat\". -->"),
     ("Shapes",
-     "Token reference: see `rounded` in front-matter.\n\n"
-     "<!-- LLM-FILL: Corner radius philosophy — sharp/rounded/mixed. What shapes signal interactivity. Any unusual shape language (bento tiles, blob backgrounds, ASCII boxes). -->"),
+     "### Border Radius Scale\n\n"
+     "<!-- LLM-FILL: the `{{rounded.*}}` scale and which radius each component uses; what shapes signal interactivity. -->\n\n"
+     "### Photography & Illustrations\n\n"
+     "<!-- LLM-FILL: image/illustration treatment — crop shape, stroke weight, art direction; or \"none; product chrome only\". -->"),
     ("Components",
-     "<!-- LLM-FILL: Describe key components — primary button, card, nav, form input. Use token references where possible (e.g. `bg: ink`, `radius: rounded.sm`). Be opinionated: for each component say what it MUST do and what it MUST NOT do. -->"),
+     "<!-- LLM-FILL: one bold-key entry per component (`button-primary`, `feature-card`, `top-nav`, `text-input`, `cta-band`, `footer`, …). For each: the `{{token}}` bindings and what it MUST do and MUST NOT do. The most load-bearing section. -->"),
     ("Do's and Don'ts",
      "### Do\n\n"
-     "<!-- LLM-FILL: 3-5 specific things to ALWAYS do (e.g. \"use ink on paper for body text at 16px+\", \"maintain 24px vertical rhythm\"). -->\n\n"
+     "<!-- LLM-FILL: 5-7 concrete, verifiable rules (\"16px+ body text\", \"96px between bands\", \"accent only on primary CTA + full-bleed callouts\"). -->\n\n"
      "### Don't\n\n"
-     "<!-- LLM-FILL: 3-5 things that break the brand (e.g. \"no gradients\", \"never use accent for body text\", \"don't introduce a second sans-serif\"). -->"),
+     "<!-- LLM-FILL: 5-7 brand-breakers (\"no cool grays for canvas\", \"never bold the display serif\", \"don't repeat a surface mode in consecutive bands\"). -->"),
+    ("Responsive Behavior",
+     "### Breakpoints\n\n"
+     "<!-- LLM-FILL: a Name | Width | Key Changes table (Mobile <768 / Tablet 768-1024 / Desktop 1024-1440 / Wide >1440). -->\n\n"
+     "### Touch Targets\n\n"
+     "<!-- LLM-FILL: minimum sizes per interactive component (button >= 40x40, input height, tappable card area). -->\n\n"
+     "### Collapsing Strategy\n\n"
+     "<!-- LLM-FILL: how nav and grids collapse mobile->desktop; what stays visually distinct at every breakpoint. -->\n\n"
+     "### Image Behavior\n\n"
+     "<!-- LLM-FILL: how code blocks / hero art / avatars behave at small widths (scroll vs wrap vs scale). -->"),
+    ("Iteration Guide",
+     "<!-- LLM-FILL: a numbered list of rules for safely extending the system — one component at a time, variants as separate `components:` entries, always `{{token}}` refs never inline hex, what is unbreakable, how to add emphasis without breaking the brand. -->"),
+    ("Known Gaps",
+     "<!-- LLM-FILL: an honest bullet list of what this document does NOT cover — licensed fonts unavailable as web fonts, animation/transition timings out of scope, states not observable from a static page, product-app surfaces beyond this marketing page. Keeps downstream agents from inventing authority. -->"),
 ]
 
 
 def render_markdown(name: str, description: str, style_name: str) -> str:
     parts = [f"# {name}", ""]
-    for i, (title, body) in enumerate(SECTION_BODIES, start=1):
-        parts.append(f"## {i}. {title}")
+    for title, body in SECTION_BODIES:
+        parts.append(f"## {title}")
         parts.append("")
         parts.append(body.format(description=description or "—", style_name=style_name or "—"))
         parts.append("")

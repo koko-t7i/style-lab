@@ -14,7 +14,8 @@ venv/
 *~
 
 # style-lab runtime + exploration artifacts (throwaway; never committed)
-style-lab-output/
+.style-lab/
+style-lab-output/   # legacy default (pre-dotfile); kept so old trees stay ignored
 .preview-server.pid
 .preview-server.log
 comparison-bundle.html
