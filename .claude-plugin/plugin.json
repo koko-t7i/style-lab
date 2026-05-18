@@ -13,5 +13,6 @@
     "visual-exploration",
     "prototyping"
   ],
+  "commands": "./commands/",
   "skills": "./skills/"
 }
